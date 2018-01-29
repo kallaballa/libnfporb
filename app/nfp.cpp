@@ -4,6 +4,7 @@
 #include <fstream>
 #include <streambuf>
 #include <vector>
+#include <set>
 #include <functional>
 
 #include <boost/geometry.hpp>
@@ -35,6 +36,10 @@ public:
 	point_t operator-(const point_t& other){
 		return {this->x_ - other.x_, this->y_ - other.y_};
 	}
+
+  bool operator<(const point_t&  other) const {
+      return  (this->x_ < other.x_) || ((this->x_ == other.x_) && (this->y_ < other.y_));
+  }
 };
 
 std::ostream& operator<<(std::ostream& os, const point_t& p) {
@@ -178,15 +183,15 @@ int main(int argc, char** argv) {
 			size_t nextJ = j+1;
 			if(bg::intersects(pAO[i], pBO[j])) {
 				touchers.push_back({Toucher::VERTEX, i, j});
-			} else if (bg::intersects(segment_t(pAO[i],pAO[nextI]), pBO[j])) {
+			} else if (!bg::intersects(pAO[nextI], pBO[j]) && bg::intersects(segment_t(pAO[i],pAO[nextI]), pBO[j])) {
 				touchers.push_back({Toucher::B_ON_A, nextI, j});
-			} else if (bg::intersects(segment_t(pBO[j],pBO[nextJ]), pAO[i])) {
+			} else if (!bg::intersects(pBO[nextJ], pAO[i]) && bg::intersects(segment_t(pBO[j],pBO[nextJ]), pAO[i])) {
 				touchers.push_back({Toucher::A_ON_B, i, nextJ});
 			}
 		}
 	}
 
-	std::vector<point_t> transVectors;
+	std::set<point_t> transVectors;
 	for (psize_t i = 0; i < touchers.size(); i++) {
 		point_t vertexA = pAO[touchers[i].A_];
 		vertexA.marked_ = true;
@@ -224,40 +229,52 @@ int main(int argc, char** argv) {
 			//a1 and b1 meet at start vertex
 			al = get_aligment(a1, b1.second);
 			if(al == LEFT) {
-				transVectors.push_back(b1.first - b1.second);
+				std::cerr << "left" << std::endl;
+				transVectors.insert(b1.first - b1.second);
 			} else if(al == RIGHT) {
-				transVectors.push_back(a1.second - a1.first);
+				std::cerr << "right" << (a1.second - a1.first) << std::endl;
+				transVectors.insert(a1.second - a1.first);
 			} else {
-				transVectors.push_back(a1.second - a1.first);
+				std::cerr << "parallel" << std::endl;
+				transVectors.insert(a1.second - a1.first);
 			}
 
 			//a1 and b2 meet at start and end
 			al = get_aligment(a1, b2.first);
 			if(al == LEFT) {
+				std::cerr << "left" << std::endl;
 				//no feasible edge
 			} else if(al == RIGHT) {
-				transVectors.push_back(a1.second - a1.first);
+				std::cerr << "right" << (a1.second - a1.first) << std::endl;
+				transVectors.insert(a1.second - a1.first);
 			} else {
-				transVectors.push_back(a1.second - a1.first);
+				std::cerr << "parallel" << std::endl;
+				transVectors.insert(a1.second - a1.first);
 			}
 
 			//a2 and b1 meet at end and start
 			al = get_aligment(a2, b1.second);
 			if(al == LEFT) {
+				std::cerr << "left" << std::endl;
 				//no feasible edge
 			} else if(al == RIGHT) {
-				transVectors.push_back(b1.first - b1.second);
+				std::cerr << "right" << (b1.first - b1.second) << std::endl;
+				transVectors.insert(b1.first - b1.second);
 			} else {
-				transVectors.push_back(a2.second - a1.first);
+				std::cerr << "parallel" << std::endl;
+				transVectors.insert(a2.second - a1.first);
 			}
 		} else if (touchers[i].type_ == Toucher::B_ON_A) { 		//FIXME: why does svgnest generate two vectors for B_ON_A and A_ON_B?
-			transVectors.push_back( { vertexA.x_ - vertexB.x_, vertexA.y_ - vertexB.y_ });
+			transVectors.insert( { vertexA.x_ - vertexB.x_, vertexA.y_ - vertexB.y_ });
 		} else if (touchers[i].type_ == Toucher::A_ON_B) {
-			transVectors.push_back( { vertexA.x_ - vertexB.x_, vertexA.y_ - vertexB.y_ });
+			transVectors.insert( { vertexA.x_ - vertexB.x_, vertexA.y_ - vertexB.y_ });
 		}
 	}
 
-
+	std::cerr << "collected vectors: " << transVectors.size() << std::endl;
+	for(auto pt : transVectors) {
+		std::cerr << pt << std::endl;
+	}
 	return 0;
 }
 
