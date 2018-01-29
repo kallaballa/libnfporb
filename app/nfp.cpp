@@ -5,7 +5,6 @@
 #include <streambuf>
 #include <vector>
 #include <set>
-#include <functional>
 
 #include <boost/geometry.hpp>
 #include <boost/geometry/geometries/point_xy.hpp>
