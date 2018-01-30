@@ -52,6 +52,11 @@ typedef bg::model::segment<point_t> segment_t;
 typedef bg::model::polygon<point_t, false, true> polygon_t;
 typedef typename polygon_t::ring_type::size_type psize_t;
 
+std::ostream& operator<<(std::ostream& os, const segment_t& seg) {
+	os << "{" << seg.first << "," << seg.second << "}";
+	return os;
+}
+
 enum Alignment {
 	LEFT,
 	RIGHT,
@@ -106,7 +111,7 @@ void write_svg(std::string const& filename,typename std::vector<Geometry> const&
     typedef typename boost::geometry::point_type<Geometry>::type point_type;
     std::ofstream svg(filename.c_str());
 
-    boost::geometry::svg_mapper<point_type> mapper(svg, 400, 400);
+    boost::geometry::svg_mapper<point_type> mapper(svg, 1000, 1000, "width=\"10%\" height=\"10%\"");
     for(auto g : geometries) {
     	mapper.add(g);
     	mapper.map(g, "fill-opacity:0.5;fill:rgb(153,204,0);stroke:rgb(153,204,0);stroke-width:2");
@@ -149,79 +154,59 @@ point_t find_maximum_y(const polygon_t& p) {
 	return result;
 }
 
-int main(int argc, char** argv) {
-	//TODO: tweak bg's floating point tolerance
-	polygon_t pA;
-	polygon_t pB;
-	polygon_t pifsB;
-
-
-	read_polygon(argv[1], pA);
-	read_polygon(argv[2], pB);
-
-	write_svg<polygon_t>("start.svg", {pA, pB});
-	std::cout << bg::wkt(pA) << std::endl;
-	std::cout << bg::wkt(pB) << std::endl;
-
-	point_t ptyamin = find_minimum_y(pA);
-	point_t ptybmax = find_maximum_y(pB);
-	point_t transB = {ptyamin.x_ - ptybmax.x_, ptyamin.y_ - ptybmax.y_};
-	trans::translate_transformer<coord_t, 2, 2> translate(transB.x_, transB.y_);
-	boost::geometry::transform(pB, pifsB, translate);
-	write_svg<polygon_t>("ifs.svg", {pA, pifsB});
-	pB = pifsB;
-
-
-	auto& pAO = pA.outer();
-	auto& pBO = pB.outer();
-
+std::vector<Toucher> findTouchers(const std::vector<point_t>& ringA, const std::vector<point_t>& ringB) {
 	std::vector<Toucher> touchers;
-	for(psize_t i = 0; i < pAO.size() - 1; i++) {
+	for(psize_t i = 0; i < ringA.size() - 1; i++) {
 		size_t nextI = i+1;
-		for(psize_t j = 0; j < pB.outer().size() - 1; j++) {
+		for(psize_t j = 0; j < ringB.size() - 1; j++) {
 			size_t nextJ = j+1;
-			if(bg::intersects(pAO[i], pBO[j])) {
+			if(bg::intersects(ringA[i], ringB[j])) {
 				touchers.push_back({Toucher::VERTEX, i, j});
-			} else if (!bg::intersects(pAO[nextI], pBO[j]) && bg::intersects(segment_t(pAO[i],pAO[nextI]), pBO[j])) {
+			} else if (!bg::intersects(ringA[nextI], ringB[j]) && bg::intersects(segment_t(ringA[i],ringA[nextI]), ringB[j])) {
 				touchers.push_back({Toucher::B_ON_A, nextI, j});
-			} else if (!bg::intersects(pBO[nextJ], pAO[i]) && bg::intersects(segment_t(pBO[j],pBO[nextJ]), pAO[i])) {
+			} else if (!bg::intersects(ringB[nextJ], ringA[i]) && bg::intersects(segment_t(ringB[j],ringB[nextJ]), ringA[i])) {
 				touchers.push_back({Toucher::A_ON_B, i, nextJ});
 			}
 		}
 	}
+	return touchers;
+}
 
+std::set<point_t> findPotentialVectors(const std::vector<point_t>& ringA, const std::vector<point_t>& ringB, const std::vector<Toucher>& touchers) {
 	std::set<point_t> transVectors;
 	for (psize_t i = 0; i < touchers.size(); i++) {
-		point_t vertexA = pAO[touchers[i].A_];
+		point_t vertexA = ringA[touchers[i].A_];
 		vertexA.marked_ = true;
 
 		// adjacent A vertices
-		psize_t prevAindex = touchers[i].A_ - 1;
-		psize_t nextAindex = touchers[i].A_ + 1;
+		signed long prevAindex = touchers[i].A_ - 1;
+		signed long nextAindex = touchers[i].A_ + 1;
 
-		prevAindex = (prevAindex < 0) ? pAO.size() - 2 : prevAindex; // loop
-		nextAindex = (nextAindex >= pAO.size()) ? 1 : nextAindex; // loop
+		prevAindex = (prevAindex < 0) ? ringA.size() - 2 : prevAindex; // loop
+		nextAindex = (nextAindex >= ringA.size()) ? 1 : nextAindex; // loop
 
-		point_t prevA = pAO[prevAindex];
-		point_t nextA = pAO[nextAindex];
+		point_t prevA = ringA[prevAindex];
+		point_t nextA = ringA[nextAindex];
 
 		// adjacent B vertices
-		point_t vertexB = pBO[touchers[i].B_];
+		point_t vertexB = ringB[touchers[i].B_];
 
-		psize_t prevBindex = touchers[i].B_ - 1;
-		psize_t nextBindex = touchers[i].B_ + 1;
+		signed long prevBindex = touchers[i].B_ - 1;
+		signed long nextBindex = touchers[i].B_ + 1;
 
-		prevBindex = (prevBindex < 0) ? pBO.size() - 2 : prevBindex; // loop
-		nextBindex = (nextBindex >= pBO.size()) ? 1 : nextBindex; // loop
+		prevBindex = (prevBindex < 0) ? ringB.size() - 2 : prevBindex; // loop
+		nextBindex = (nextBindex >= ringB.size()) ? 1 : nextBindex; // loop
 
-		point_t prevB = pBO[prevBindex];
-		point_t nextB = pBO[nextBindex];
+		point_t prevB = ringB[prevBindex];
+		point_t nextB = ringB[nextBindex];
 
 		if (touchers[i].type_ == Toucher::VERTEX) {
 			segment_t a1 = { vertexA, nextA };
 			segment_t a2 = { prevA, vertexA };
 			segment_t b1 = { vertexB, nextB };
 			segment_t b2 = { prevB, vertexB };
+			std::cerr << a1 << " " << a2 << " " << b1 << " " << b2 << std::endl;
+			write_svg<segment_t>("touchers" + std::to_string(i) + ".svg", {a1,a2,b1,b2});
 
 			//FIXME test parallel edges for floating point stability
 			Alignment al;
@@ -269,6 +254,37 @@ int main(int argc, char** argv) {
 			transVectors.insert( { vertexA.x_ - vertexB.x_, vertexA.y_ - vertexB.y_ });
 		}
 	}
+	return transVectors;
+}
+
+
+int main(int argc, char** argv) {
+	//TODO: tweak bg's floating point tolerance
+	polygon_t pA;
+	polygon_t pB;
+	polygon_t pifsB;
+
+	read_polygon(argv[1], pA);
+	read_polygon(argv[2], pB);
+
+	write_svg<polygon_t>("start.svg", {pA, pB});
+	std::cout << bg::wkt(pA) << std::endl;
+	std::cout << bg::wkt(pB) << std::endl;
+
+	point_t ptyamin = find_minimum_y(pA);
+	point_t ptybmax = find_maximum_y(pB);
+	point_t transB = {ptyamin - ptybmax};
+	trans::translate_transformer<coord_t, 2, 2> translate(transB.x_, transB.y_);
+	boost::geometry::transform(pB, pifsB, translate);
+	write_svg<polygon_t>("ifs.svg", {pA, pifsB});
+	pB = pifsB;
+
+
+	auto& pAO = pA.outer();
+	auto& pBO = pB.outer();
+
+	std::vector<Toucher> touchers = findTouchers(pA.outer(), pB.outer());
+	std::set<point_t> transVectors = findPotentialVectors(pA.outer(), pB.outer(), touchers);
 
 	std::cerr << "collected vectors: " << transVectors.size() << std::endl;
 	for(auto pt : transVectors) {
