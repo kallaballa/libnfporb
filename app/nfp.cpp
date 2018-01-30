@@ -111,7 +111,7 @@ void write_svg(std::string const& filename,typename std::vector<Geometry> const&
     typedef typename boost::geometry::point_type<Geometry>::type point_type;
     std::ofstream svg(filename.c_str());
 
-    boost::geometry::svg_mapper<point_type> mapper(svg, 1000, 1000, "width=\"10%\" height=\"10%\"");
+    boost::geometry::svg_mapper<point_type> mapper(svg, 100, 100, "width=\"200mm\" height=\"200mm\" viewBox=\"-250 -250 500 500\"");
     for(auto g : geometries) {
     	mapper.add(g);
     	mapper.map(g, "fill-opacity:0.5;fill:rgb(153,204,0);stroke:rgb(153,204,0);stroke-width:2");
