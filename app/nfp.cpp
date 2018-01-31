@@ -32,11 +32,15 @@ public:
 	coord_t x_;
 	coord_t y_;
 
-	point_t operator-(const point_t& other){
+	point_t operator-(const point_t& other) {
 		return {this->x_ - other.x_, this->y_ - other.y_};
 	}
 
-  bool operator<(const point_t&  other) const {
+  bool operator==(const point_t&  other) const {
+      return  (this->x_ == other.x_) && (this->y_ == other.y_);
+  }
+
+	bool operator<(const point_t&  other) const {
       return  (this->x_ < other.x_) || ((this->x_ == other.x_) && (this->y_ < other.y_));
   }
 };
@@ -55,6 +59,10 @@ typedef typename polygon_t::ring_type::size_type psize_t;
 std::ostream& operator<<(std::ostream& os, const segment_t& seg) {
 	os << "{" << seg.first << "," << seg.second << "}";
 	return os;
+}
+
+bool operator<(const segment_t& lhs, const segment_t& rhs) {
+	return lhs.first < rhs.first || ((lhs.first == rhs.first) && (lhs.second < rhs.second));
 }
 
 enum Alignment {
@@ -98,6 +106,20 @@ struct TouchingPoint {
 	psize_t A_;
 	psize_t B_;
 };
+
+struct TranslationVector {
+	point_t vector_;
+	segment_t edge_;
+
+	bool operator<(const TranslationVector& other) const {
+		return this->vector_ < other.vector_ || ((this->vector_ == other.vector_) && (this->edge_ < other.edge_));
+	}
+};
+
+std::ostream& operator<<(std::ostream& os, const TranslationVector& tv) {
+	os << "{" << tv.edge_ << " -> " << tv.vector_ << "}";
+	return os;
+}
 
 template <typename Geometry>
 void write_svg(std::string const& filename,typename std::vector<Geometry> const& geometries) {
@@ -165,9 +187,9 @@ std::vector<TouchingPoint> findTouchingPoints(const std::vector<point_t>& ringA,
 	return touchers;
 }
 
-std::set<point_t> findTranslationVectors(const std::vector<point_t>& ringA, const std::vector<point_t>& ringB, const std::vector<TouchingPoint>& touchers) {
+std::set<TranslationVector> findTranslationVectors(const std::vector<point_t>& ringA, const std::vector<point_t>& ringB, const std::vector<TouchingPoint>& touchers) {
 	//use a set to automatically filter duplicate vectors
-	std::set<point_t> potentialVectors;
+	std::set<TranslationVector> potentialVectors;
 	std::vector<std::pair<segment_t,segment_t>> touchEdges;
 
 	for (psize_t i = 0; i < touchers.size(); i++) {
@@ -216,11 +238,11 @@ std::set<point_t> findTranslationVectors(const std::vector<point_t>& ringA, cons
 			//a1 and b1 meet at start vertex
 			al = get_aligment(a1, b1.second);
 			if(al == LEFT) {
-				potentialVectors.insert(b1.first - b1.second);
+				potentialVectors.insert({b1.first - b1.second, b1});
 			} else if(al == RIGHT) {
-				potentialVectors.insert(a1.second - a1.first);
+				potentialVectors.insert({a1.second - a1.first, a1});
 			} else {
-				potentialVectors.insert(a1.second - a1.first);
+				potentialVectors.insert({a1.second - a1.first, a1});
 			}
 
 			//a1 and b2 meet at start and end
@@ -228,9 +250,9 @@ std::set<point_t> findTranslationVectors(const std::vector<point_t>& ringA, cons
 			if(al == LEFT) {
 				//no feasible translation
 			} else if(al == RIGHT) {
-				potentialVectors.insert(a1.second - a1.first);
+				potentialVectors.insert({a1.second - a1.first, a1});
 			} else {
-				potentialVectors.insert(a1.second - a1.first);
+				potentialVectors.insert({a1.second - a1.first, a1});
 			}
 
 			//a2 and b1 meet at end and start
@@ -238,26 +260,26 @@ std::set<point_t> findTranslationVectors(const std::vector<point_t>& ringA, cons
 			if(al == LEFT) {
 				//no feasible translation
 			} else if(al == RIGHT) {
-				potentialVectors.insert(b1.first - b1.second);
+				potentialVectors.insert({b1.first - b1.second, b1});
 			} else {
-				potentialVectors.insert(a2.second - a1.first);
+				potentialVectors.insert({a2.second - a2.first, a2});
 			}
 		} else if (touchers[i].type_ == TouchingPoint::B_ON_A) { 		//FIXME: why does svgnest generate two vectors for B_ON_A and A_ON_B?
-			potentialVectors.insert( { vertexA.x_ - vertexB.x_, vertexA.y_ - vertexB.y_ });
+			potentialVectors.insert({{ vertexA.x_ - vertexB.x_, vertexA.y_ - vertexB.y_ }, {prevA, vertexA}});
 		} else if (touchers[i].type_ == TouchingPoint::A_ON_B) {
-			potentialVectors.insert( { vertexA.x_ - vertexB.x_, vertexA.y_ - vertexB.y_ });
+			potentialVectors.insert({{ vertexA.x_ - vertexB.x_, vertexA.y_ - vertexB.y_ }, {vertexB, prevB}});
 
 		}
 	}
 
 	//discard immediately intersecting translations
-	std::set<point_t> vectors;
+	std::set<TranslationVector> vectors;
 	for(auto v : potentialVectors) {
 		bool discarded = false;
 		for(auto sp : touchEdges) {
 			point_t& transStart = sp.first.first;
 			point_t transEnd;
-			trans::translate_transformer<coord_t, 2, 2> translate(v.x_, v.y_);
+			trans::translate_transformer<coord_t, 2, 2> translate(v.vector_.x_, v.vector_.y_);
 			boost::geometry::transform(transStart, transEnd, translate);
 			segment_t transSeg(transStart, transEnd);
 			Alignment a1 = get_aligment(transSeg, sp.first.second);
@@ -298,7 +320,7 @@ int main(int argc, char** argv) {
 	pB = std::move(pifsB);
 
 	std::vector<TouchingPoint> touchers = findTouchingPoints(pA.outer(), pB.outer());
-	std::set<point_t> transVectors = findTranslationVectors(pA.outer(), pB.outer(), touchers);
+	std::set<TranslationVector> transVectors = findTranslationVectors(pA.outer(), pB.outer(), touchers);
 
 	std::cerr << "collected vectors: " << transVectors.size() << std::endl;
 	for(auto pt : transVectors) {
