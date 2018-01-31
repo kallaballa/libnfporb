@@ -1,0 +1,11 @@
+*.svg
+app/*.dep
+app/*.o
+src/*.dep
+src/*.o
+app/nfp
+src/libnfp.so
+.cproject
+.project
+.settings/
+valgrind.log
