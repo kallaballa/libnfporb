@@ -9,6 +9,7 @@
 #include <boost/geometry.hpp>
 #include <boost/geometry/geometries/point_xy.hpp>
 #include <boost/geometry/geometries/polygon.hpp>
+#include <boost/geometry/geometries/linestring.hpp>
 #include <boost/geometry/io/svg/svg_mapper.hpp>
 #include <boost/geometry/algorithms/intersects.hpp>
 #include <boost/geometry/geometries/register/point.hpp>
@@ -32,7 +33,7 @@ public:
 	coord_t x_;
 	coord_t y_;
 
-	point_t operator-(const point_t& other) {
+	point_t operator-(const point_t& other) const {
 		return {this->x_ - other.x_, this->y_ - other.y_};
 	}
 
@@ -54,6 +55,8 @@ BOOST_GEOMETRY_REGISTER_POINT_2D(point_t, coord_t, cs::cartesian, x_, y_)
 
 typedef bg::model::segment<point_t> segment_t;
 typedef bg::model::polygon<point_t, false, true> polygon_t;
+typedef bg::model::linestring<point_t> linestring_t;
+
 typedef typename polygon_t::ring_type::size_type psize_t;
 
 std::ostream& operator<<(std::ostream& os, const segment_t& seg) {
@@ -63,6 +66,10 @@ std::ostream& operator<<(std::ostream& os, const segment_t& seg) {
 
 bool operator<(const segment_t& lhs, const segment_t& rhs) {
 	return lhs.first < rhs.first || ((lhs.first == rhs.first) && (lhs.second < rhs.second));
+}
+
+bool operator==(const segment_t& lhs, const segment_t& rhs) {
+	return (lhs.first == rhs.first && lhs.second == rhs.second) || (lhs.first == rhs.second && lhs.second == rhs.first);
 }
 
 enum Alignment {
@@ -149,27 +156,32 @@ void read_polygon(const string& filename, polygon_t& p) {
 	bg::correct(p);
 }
 
-point_t find_minimum_y(const polygon_t& p) {
-	point_t result = {MAX_COORD, MAX_COORD};
-	for(auto pt : p.outer()) {
-		if(pt.y_ < result.y_) {
-			result = pt;
+psize_t find_minimum_y(const polygon_t& p) {
+	psize_t result = 0;
+	coord_t min = MAX_COORD;
+	auto& po = p.outer();
+	for(psize_t i = 0; i < p.outer().size(); ++i) {
+		if(po[i].y_ < min) {
+			min = po[i].y_;
+			result = i;
 		}
 	}
 	return result;
 }
 
-point_t find_maximum_y(const polygon_t& p) {
-	point_t result = {MIN_COORD, MIN_COORD};
-	for(auto pt : p.outer()) {
-		if(pt.y_ > result.y_) {
-			result = pt;
+psize_t find_maximum_y(const polygon_t& p) {
+	psize_t result = 0;
+	coord_t max = MIN_COORD;
+	auto& po = p.outer();
+	for(psize_t i = 0; i < p.outer().size(); ++i) {
+		if(po[i].y_ > max) {
+			max = po[i].y_;
+			result = i;
 		}
 	}
 	return result;
 }
-
-std::vector<TouchingPoint> findTouchingPoints(const std::vector<point_t>& ringA, const std::vector<point_t>& ringB) {
+std::vector<TouchingPoint> findTouchingPoints(const polygon_t::ring_type& ringA, const polygon_t::ring_type& ringB) {
 	std::vector<TouchingPoint> touchers;
 	for(psize_t i = 0; i < ringA.size() - 1; i++) {
 		size_t nextI = i+1;
@@ -187,14 +199,13 @@ std::vector<TouchingPoint> findTouchingPoints(const std::vector<point_t>& ringA,
 	return touchers;
 }
 
-std::set<TranslationVector> findTranslationVectors(const std::vector<point_t>& ringA, const std::vector<point_t>& ringB, const std::vector<TouchingPoint>& touchers) {
+std::set<TranslationVector> findFeasibleTranslationVectors(const polygon_t::ring_type& ringA, const polygon_t::ring_type& ringB, const std::vector<TouchingPoint>& touchers) {
 	//use a set to automatically filter duplicate vectors
 	std::set<TranslationVector> potentialVectors;
 	std::vector<std::pair<segment_t,segment_t>> touchEdges;
 
 	for (psize_t i = 0; i < touchers.size(); i++) {
 		point_t vertexA = ringA[touchers[i].A_];
-		vertexA.marked_ = true;
 
 		// adjacent A vertices
 		signed long prevAindex = touchers[i].A_ - 1;
@@ -296,6 +307,86 @@ std::set<TranslationVector> findTranslationVectors(const std::vector<point_t>& r
 	return vectors;
 }
 
+TranslationVector findNextTranslationVector(const polygon_t::ring_type& rA, const std::set<TranslationVector>& tvs){
+	for(psize_t i = 0; i < rA.size(); ++i) {
+		if(rA[i].marked_)
+			continue;
+
+		point_t previous;
+		if(i == 0) {
+			previous = rA[rA.size() - 2];
+		} else {
+			previous = rA[i - 1];
+		}
+		segment_t candidate{previous, rA[i]};
+		for(auto& tv : tvs) {
+			if(tv.edge_ == candidate) {
+				return tv;
+			}
+		}
+	}
+	//should never happen since the tvs are determined from the touching edges
+	assert(false);
+	return *tvs.begin();
+}
+
+TranslationVector trimVector(const polygon_t::ring_type& rA, const polygon_t::ring_type& rB, const TranslationVector& tv) {
+	coord_t shortest = bg::length(tv.edge_);
+	TranslationVector trimmed = tv;
+	for(const auto& ptA : rA) {
+		point_t translated;
+		//for polygon A we invert the translation
+		trans::translate_transformer<coord_t, 2, 2> translate(-tv.vector_.x_, -tv.vector_.y_);
+		boost::geometry::transform(ptA, translated, translate);
+		linestring_t projection;
+		segment_t segproj(ptA, translated);
+		projection.push_back(ptA);
+		projection.push_back(translated);
+		std::vector<point_t> intersections;
+		bg::intersection(rA, projection, intersections);
+
+		//find shortest intersection
+		coord_t len;
+		segment_t segi;
+		for(const auto& pti : intersections) {
+			segi = segment_t(ptA,pti);
+			len = bg::length(segi);
+			if(len < shortest) {
+				trimmed.vector_ = pti - ptA;
+				trimmed.edge_ = segi;
+				shortest = len;
+			}
+		}
+	}
+
+	for(const auto& ptB : rB) {
+		point_t translated;
+
+		trans::translate_transformer<coord_t, 2, 2> translate(tv.vector_.x_, tv.vector_.y_);
+		boost::geometry::transform(ptB, translated, translate);
+		linestring_t projection;
+		segment_t segproj(ptB, translated);
+		projection.push_back(ptB);
+		projection.push_back(translated);
+		std::vector<point_t> intersections;
+		bg::intersection(rA, projection, intersections);
+
+		//find shortest intersection
+		coord_t len;
+		segment_t segi;
+		for(const auto& pti : intersections) {
+			segi = segment_t(ptB,pti);
+			len = bg::length(segi);
+			if(len < shortest) {
+				trimmed.vector_ = pti - ptB;
+				trimmed.edge_ = segi;
+				shortest = len;
+			}
+		}
+	}
+
+	return trimmed;
+}
 
 int main(int argc, char** argv) {
 	//TODO: tweak bg's floating point tolerance
@@ -306,26 +397,42 @@ int main(int argc, char** argv) {
 
 	read_polygon(argv[1], pA);
 	read_polygon(argv[2], pB);
-
+	assert(pA.outer().size() > 2);
+	assert(pB.outer().size() > 2);
 	write_svg<polygon_t>("start.svg", {pA, pB});
 	std::cout << bg::wkt(pA) << std::endl;
 	std::cout << bg::wkt(pB) << std::endl;
 
-	point_t ptyamin = find_minimum_y(pA);
-	point_t ptybmax = find_maximum_y(pB);
-	point_t transB = {ptyamin - ptybmax};
+	psize_t ptyaminI = find_minimum_y(pA);
+	psize_t ptybmaxI = find_maximum_y(pB);
+	point_t& pAstart = pA.outer()[ptyaminI];
+	point_t& pBstart = pB.outer()[ptybmaxI];
+	point_t transB = {pAstart - pBstart};
 	trans::translate_transformer<coord_t, 2, 2> translate(transB.x_, transB.y_);
 	boost::geometry::transform(pB, pifsB, translate);
 	write_svg<polygon_t>("ifs.svg", {pA, pifsB});
 	pB = std::move(pifsB);
+	pAstart.marked_ = true;
 
 	std::vector<TouchingPoint> touchers = findTouchingPoints(pA.outer(), pB.outer());
-	std::set<TranslationVector> transVectors = findTranslationVectors(pA.outer(), pB.outer(), touchers);
+	std::set<TranslationVector> transVectors = findFeasibleTranslationVectors(pA.outer(), pB.outer(), touchers);
+	assert(!transVectors.empty());
 
 	std::cerr << "collected vectors: " << transVectors.size() << std::endl;
 	for(auto pt : transVectors) {
 		std::cerr << pt << std::endl;
 	}
+
+	TranslationVector next;
+	if(transVectors.size() > 1)
+		next = findNextTranslationVector(pA.outer(), transVectors);
+	else
+		next = *transVectors.begin();
+	std::cerr << "next: " << next << std::endl;
+
+	TranslationVector trimmed = trimVector(pA.outer(), pB.outer(), next);
+	std::cerr << "trimmed: " << trimmed << std::endl;
+
 	return 0;
 }
 
