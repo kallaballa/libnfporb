@@ -330,6 +330,7 @@ TranslationVector findNextTranslationVector(const polygon_t::ring_type& rA, cons
 	return *tvs.begin();
 }
 
+//TODO deduplicate code
 TranslationVector trimVector(const polygon_t::ring_type& rA, const polygon_t::ring_type& rB, const TranslationVector& tv) {
 	coord_t shortest = bg::length(tv.edge_);
 	TranslationVector trimmed = tv;
@@ -343,16 +344,26 @@ TranslationVector trimVector(const polygon_t::ring_type& rA, const polygon_t::ri
 		projection.push_back(ptA);
 		projection.push_back(translated);
 		std::vector<point_t> intersections;
-		bg::intersection(rA, projection, intersections);
+		bg::intersection(rB, projection, intersections);
 
 		//find shortest intersection
 		coord_t len;
 		segment_t segi;
 		for(const auto& pti : intersections) {
+			//bg::intersection is inclusive so we have to exclude exact point intersections
+			bool cont = false;
+			for(const auto& ptB : rB) {
+				if(pti == ptB) {
+					cont = true;
+					break;
+				}
+			}
+			if(cont)
+				continue;
 			segi = segment_t(ptA,pti);
 			len = bg::length(segi);
 			if(len < shortest) {
-				trimmed.vector_ = pti - ptA;
+				trimmed.vector_ = ptA - pti;
 				trimmed.edge_ = segi;
 				shortest = len;
 			}
@@ -375,6 +386,16 @@ TranslationVector trimVector(const polygon_t::ring_type& rA, const polygon_t::ri
 		coord_t len;
 		segment_t segi;
 		for(const auto& pti : intersections) {
+			//bg::intersection is inclusive so we have to exclude exact point intersections
+			bool cont = false;
+			for(const auto& ptA : rA) {
+				if(pti == ptA) {
+					cont = true;
+					break;
+				}
+			}
+			if(cont)
+				continue;
 			segi = segment_t(ptB,pti);
 			len = bg::length(segi);
 			if(len < shortest) {
@@ -393,7 +414,6 @@ int main(int argc, char** argv) {
 	//TODO: remove superfluous points
 	polygon_t pA;
 	polygon_t pB;
-	polygon_t pifsB;
 
 	read_polygon(argv[1], pA);
 	read_polygon(argv[2], pB);
@@ -408,10 +428,13 @@ int main(int argc, char** argv) {
 	point_t& pAstart = pA.outer()[ptyaminI];
 	point_t& pBstart = pB.outer()[ptybmaxI];
 	point_t transB = {pAstart - pBstart};
-	trans::translate_transformer<coord_t, 2, 2> translate(transB.x_, transB.y_);
-	boost::geometry::transform(pB, pifsB, translate);
-	write_svg<polygon_t>("ifs.svg", {pA, pifsB});
+
+	polygon_t pifsB;
+	boost::geometry::transform(pB, pifsB, trans::translate_transformer<coord_t, 2, 2>(transB.x_, transB.y_));
 	pB = std::move(pifsB);
+
+	write_svg<polygon_t>("ifs.svg", {pA, pB});
+
 	pAstart.marked_ = true;
 
 	std::vector<TouchingPoint> touchers = findTouchingPoints(pA.outer(), pB.outer());
@@ -433,6 +456,11 @@ int main(int argc, char** argv) {
 	TranslationVector trimmed = trimVector(pA.outer(), pB.outer(), next);
 	std::cerr << "trimmed: " << trimmed << std::endl;
 
+	polygon_t nextB;
+	boost::geometry::transform(pB, nextB, trans::translate_transformer<coord_t, 2, 2>(trimmed.vector_.x_, trimmed.vector_.y_));
+	pB = std::move(nextB);
+
+	write_svg<polygon_t>("next.svg", {pA,pB});
 	return 0;
 }
 
