@@ -139,6 +139,7 @@ struct TouchingPoint {
 struct TranslationVector {
 	point_t vector_;
 	segment_t edge_;
+	bool fromA_;
 
 	bool operator<(const TranslationVector& other) const {
 		return this->vector_ < other.vector_ || ((this->vector_ == other.vector_) && (this->edge_ < other.edge_));
@@ -210,6 +211,14 @@ std::vector<psize_t> find_maximum_y(const polygon_t& p) {
 	return result;
 }
 
+psize_t find_point(const polygon_t::ring_type& ring, const point_t& pt) {
+	for(psize_t i = 0; i < ring.size(); ++i) {
+		if(ring[i] == pt)
+			return i;
+	}
+	return std::numeric_limits<psize_t>::max();
+}
+
 std::vector<TouchingPoint> findTouchingPoints(const polygon_t::ring_type& ringA, const polygon_t::ring_type& ringB) {
 	std::vector<TouchingPoint> touchers;
 	for(psize_t i = 0; i < ringA.size() - 1; i++) {
@@ -235,7 +244,6 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 
 	for (psize_t i = 0; i < touchers.size(); i++) {
 		point_t& vertexA = ringA[touchers[i].A_];
-		vertexA.marked_ = true;
 
 		// adjacent A vertices
 		signed long prevAindex = touchers[i].A_ - 1;
@@ -279,11 +287,11 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 			//a1 and b1 meet at start vertex
 			al = get_aligment(a1, b1.second);
 			if(al == LEFT) {
-				potentialVectors.insert({b1.first - b1.second, b1});
+				potentialVectors.insert({b1.first - b1.second, b1, false});
 			} else if(al == RIGHT) {
-				potentialVectors.insert({a1.second - a1.first, a1});
+				potentialVectors.insert({a1.second - a1.first, a1, true});
 			} else {
-				potentialVectors.insert({a1.second - a1.first, a1});
+				potentialVectors.insert({a1.second - a1.first, a1, true});
 			}
 
 			//a1 and b2 meet at start and end
@@ -291,9 +299,9 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 			if(al == LEFT) {
 				//no feasible translation
 			} else if(al == RIGHT) {
-				potentialVectors.insert({a1.second - a1.first, a1});
+				potentialVectors.insert({a1.second - a1.first, a1, true});
 			} else {
-				potentialVectors.insert({a1.second - a1.first, a1});
+				potentialVectors.insert({a1.second - a1.first, a1, true});
 			}
 
 			//a2 and b1 meet at end and start
@@ -310,7 +318,7 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 			touchEdges.push_back({{vertexB, vertexA}, {vertexB, nextB}});
 			touchEdges.push_back({{vertexB, prevA}, {vertexB, prevB}});
 			touchEdges.push_back({{vertexB, nextA}, {vertexB, nextB}});
-			potentialVectors.insert({{ vertexA.x_ - vertexB.x_, vertexA.y_ - vertexB.y_ }, {vertexB, vertexA}});
+			potentialVectors.insert({{ vertexA.x_ - vertexB.x_, vertexA.y_ - vertexB.y_ }, {vertexB, vertexA}, true});
 		} else if (touchers[i].type_ == TouchingPoint::A_ON_B) {
 			//TODO testme
 			touchEdges.push_back({{vertexA, prevA}, {vertexA, vertexB}});
@@ -318,16 +326,16 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 			touchEdges.push_back({{vertexA, prevA}, {vertexA, prevB}});
 			touchEdges.push_back({{vertexA, nextA}, {vertexA, prevB}});
 
-			potentialVectors.insert({{  vertexA.x_ - vertexB.x_, vertexA.y_ - vertexB.y_}, {vertexA, vertexB}});
+			potentialVectors.insert({{  vertexA.x_ - vertexB.x_, vertexA.y_ - vertexB.y_}, {vertexA, vertexB}, false});
 		}
 	}
 
 	//discard immediately intersecting translations
 	std::set<TranslationVector> vectors;
-	for(auto v : potentialVectors) {
+	for(const auto& v : potentialVectors) {
 		bool discarded = false;
-		for(auto sp : touchEdges) {
-			point_t& transStart = sp.first.first;
+		for(const auto& sp : touchEdges) {
+			const point_t& transStart = sp.first.first;
 			point_t transEnd;
 			trans::translate_transformer<coord_t, 2, 2> translate(v.vector_.x_, v.vector_.y_);
 			boost::geometry::transform(transStart, transEnd, translate);
@@ -347,9 +355,16 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 				point_t normEdge = normalize(v.edge_.second - v.edge_.first);
 				point_t normTrans = normalize(transEnd - transStart);
 
-				if((normEdge == normTrans && ds >= df) || (normEdge != normTrans && df <= ds)) {
-					discarded = true;
-					break;
+				if(normEdge == normTrans) {
+					if(ds > df) {
+						discarded = true;
+						break;
+					}
+				} else {
+					if(df <= ds) {
+						discarded = true;
+						break;
+					}
 				}
 			}
 		}
@@ -359,29 +374,92 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 	return vectors;
 }
 
-TranslationVector findNextTranslationVector(const polygon_t::ring_type& rA,	const polygon_t::ring_type& rB, const std::set<TranslationVector>& tvs) {
-	std::vector<TranslationVector> notDisconnectingTranslation;
-	for (auto& tv : tvs) {
-		polygon_t::ring_type translated;
-		trans::translate_transformer<coord_t, 2, 2> translate(tv.vector_.x_, tv.vector_.y_);
-		boost::geometry::transform(rB, translated, translate);
-		if (bg::intersects(rA, translated)) {
-			notDisconnectingTranslation.push_back(tv);
+TranslationVector findNextTranslationVector(const polygon_t::ring_type& rA,	const polygon_t::ring_type& rB, const std::set<TranslationVector>& tvs, const TranslationVector& last) {
+	if(last.vector_ != INVALID_POINT) {
+		point_t later;
+		if(last.vector_ == (last.edge_.second - last.edge_.first)) {
+			later = last.edge_.second;
+		} else {
+			later = last.edge_.first;
 		}
-	}
-	assert(!notDisconnectingTranslation.empty());
-	coord_t len;
-	coord_t maxLen = MIN_COORD;
-	TranslationVector longest;
-	for(auto& tv : notDisconnectingTranslation) {
-		len = bg::length(segment_t{{0,0},tv.vector_});
-		if(len > maxLen) {
-			maxLen = len;
-			longest = tv;
-		}
-	}
 
-	return longest;
+		psize_t laterI = find_point(rA, later);
+		assert(laterI != std::numeric_limits<psize_t>::max());
+		point_t previous = later;
+		point_t next;
+		std::vector<segment_t> viableEdges;
+		for(psize_t i = laterI + 1; i < rA.size() + laterI; ++i) {
+			if(i >= rA.size())
+				next = rA[i % rA.size() + 1];
+			else
+				next = rA[i];
+
+			viableEdges.push_back({previous, next});
+			previous = next;
+		}
+
+		for(const auto& ve: viableEdges) {
+			for(auto& tv : tvs) {
+				if((tv.fromA_ && (tv.vector_ == (ve.second - ve.first) || tv.vector_ == (ve.first - ve.second)))) {
+					polygon_t::ring_type translated;
+					trans::translate_transformer<coord_t, 2, 2> translate(tv.vector_.x_, tv.vector_.y_);
+					boost::geometry::transform(rB, translated, translate);
+					std::vector<point_t> intersectRes;
+					bg::intersection(rA,translated, intersectRes);
+					if(!intersectRes.empty() && (!bg::covered_by(translated, rA) && !bg::covered_by(rA, translated)))  {
+						return tv;
+					}
+				} else if(!tv.fromA_) {
+					point_t later;
+					if(tv.vector_ == (tv.edge_.second - tv.edge_.first)) {
+						later = last.edge_.second;
+					} else {
+						later = last.edge_.first;
+					}
+
+					if(later == ve.first || later == ve.second) {
+						polygon_t::ring_type translated;
+						trans::translate_transformer<coord_t, 2, 2> translate(tv.vector_.x_, tv.vector_.y_);
+						boost::geometry::transform(rB, translated, translate);
+						std::vector<point_t> intersectRes;
+						bg::intersection(rA,translated, intersectRes);
+						if(!intersectRes.empty() && (!bg::covered_by(translated, rA) && !bg::covered_by(rA, translated)))  {
+							return tv;
+						}
+					}
+				}
+			}
+		}
+		assert(false);
+		return TranslationVector();
+	} else {
+		std::vector<TranslationVector> notDisconnectingTranslation;
+		for (auto& tv : tvs) {
+			polygon_t::ring_type translated;
+			trans::translate_transformer<coord_t, 2, 2> translate(tv.vector_.x_, tv.vector_.y_);
+			boost::geometry::transform(rB, translated, translate);
+			std::vector<point_t> intersectRes;
+			bg::intersection(rA,translated, intersectRes);
+			if(!intersectRes.empty() && (!bg::covered_by(translated, rA) && !bg::covered_by(rA, translated)))  {
+					notDisconnectingTranslation.push_back(tv);
+			}
+		}
+
+		assert(!notDisconnectingTranslation.empty());
+
+		coord_t len;
+		coord_t maxLen = MIN_COORD;
+		TranslationVector longest;
+		for(auto& tv : notDisconnectingTranslation) {
+			len = bg::length(segment_t{{0,0},tv.vector_});
+			if(len > maxLen) {
+				maxLen = len;
+				longest = tv;
+			}
+		}
+
+		return longest;
+	}
 }
 
 //TODO deduplicate code
@@ -523,11 +601,13 @@ int main(int argc, char** argv) {
 	bool startAvailable = true;
 	psize_t cnt = 0;
 	point_t referenceStart = pB.outer().front();
+	TranslationVector last;
+	last.vector_ = INVALID_POINT;
 
 	while(startAvailable) {
 		//use first point of pB as reference
 		nfp.outer().push_back(pB.outer().front());
-		if(cnt == 5) {
+		if(cnt == 4) {
 			std::cerr << "bp" << std::endl;
 		}
 		std::vector<TouchingPoint> touchers = findTouchingPoints(pA.outer(), pB.outer());
@@ -544,18 +624,20 @@ int main(int argc, char** argv) {
 
 		TranslationVector next;
 		if(transVectors.size() > 1)
-			next = findNextTranslationVector(pA.outer(), pB.outer(), transVectors);
+			next = findNextTranslationVector(pA.outer(), pB.outer(), transVectors, last);
 		else
 			next = *transVectors.begin();
 		std::cerr << "next: " << next << std::endl;
-
+		last = next;
 		TranslationVector trimmed = trimVector(pA.outer(), pB.outer(), next);
 		std::cerr << "trimmed: " << trimmed << std::endl;
-
 
 		polygon_t nextB;
 		boost::geometry::transform(pB, nextB, trans::translate_transformer<coord_t, 2, 2>(trimmed.vector_.x_, trimmed.vector_.y_));
 		pB = std::move(nextB);
+
+
+
 
 		write_svg<polygon_t>("next" + std::to_string(cnt) + ".svg", {pA,pB});
 		++cnt;
