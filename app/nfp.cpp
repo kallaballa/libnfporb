@@ -163,6 +163,30 @@ void write_svg(std::string const& filename,typename std::vector<Geometry> const&
     }
 }
 
+void write_svg(std::string const& filename,	typename std::vector<polygon_t> const& polygons, std::vector<polygon_t::ring_type> nfp) {
+	polygon_t nfppoly;
+	for (const auto& pt : nfp.front()) {
+		nfppoly.outer().push_back(pt);
+	}
+
+	for (size_t i = 1; i < nfp.size(); ++i) {
+		nfppoly.inners().push_back({});
+		for (const auto& pt : nfp[i]) {
+			nfppoly.inners().back().push_back(pt);
+		}
+	}
+	std::ofstream svg(filename.c_str());
+
+	boost::geometry::svg_mapper<point_t> mapper(svg, 100, 100,	"width=\"200mm\" height=\"200mm\" viewBox=\"-250 -250 500 500\"");
+	for (auto p : polygons) {
+		mapper.add(p);
+		mapper.map(p, "fill-opacity:0.5;fill:rgb(153,204,0);stroke:rgb(153,204,0);stroke-width:2");
+	}
+
+	mapper.add(nfppoly);
+	mapper.map(nfppoly, "fill-opacity:0.5;fill:rgb(204,153,0);stroke:rgb(204,153,0);stroke-width:2");
+}
+
 void read_polygon(const string& filename, polygon_t& p) {
 	std::ifstream t(filename);
 
@@ -244,6 +268,7 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 
 	for (psize_t i = 0; i < touchers.size(); i++) {
 		point_t& vertexA = ringA[touchers[i].A_];
+		vertexA.marked_ = true;
 
 		// adjacent A vertices
 		signed long prevAindex = touchers[i].A_ - 1;
@@ -374,7 +399,7 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 	return vectors;
 }
 
-TranslationVector findNextTranslationVector(const polygon_t::ring_type& rA,	const polygon_t::ring_type& rB, std::set<TranslationVector> tvs, const TranslationVector& last) {
+TranslationVector selectNextTranslationVector(const polygon_t::ring_type& rA,	const polygon_t::ring_type& rB, std::set<TranslationVector> tvs, const TranslationVector& last) {
 	if(last.vector_ != INVALID_POINT) {
 		point_t later;
 		if(last.vector_ == (last.edge_.second - last.edge_.first)) {
@@ -553,12 +578,169 @@ TranslationVector trimVector(const polygon_t::ring_type& rA, const polygon_t::ri
 	return trimmed;
 }
 
+bool inNfp(const point_t& pt, std::vector<polygon_t::ring_type> nfp) {
+	for(const auto& r : nfp) {
+		for(const auto& ptN: r) {
+			if(ptN == pt)
+				return true;
+		}
+	}
+
+	return false;
+}
+
+bool searchStartTranslation(polygon_t::ring_type& rA, const polygon_t::ring_type& rB, const std::vector<polygon_t::ring_type>& nfp,const bool& inside, point_t& result) {
+	for(psize_t i = 0; i < rA.size() -1; i++) {
+		auto& ptA = rA[i];
+
+		if(ptA.marked_)
+			continue;
+
+		ptA.marked_ = true;
+
+		for(const auto& ptB: rB) {
+			point_t testTranslation = ptA - ptB;
+			polygon_t::ring_type translated;
+			boost::geometry::transform(rB, translated, trans::translate_transformer<coord_t, 2, 2>(testTranslation.x_, testTranslation.y_));
+
+			//check if the translated rB is identical to rA
+			bool identical = true;
+			for(const auto& ptT: translated) {
+				for(const auto& ptA: rA) {
+					if(ptT != ptA) {
+						identical = false;
+						break;
+					}
+				}
+				if(!identical)
+					break;
+			}
+
+			if(identical)
+				return false;
+
+			bool bInside = false;
+			for(const auto& ptT: translated) {
+				if(bg::within(ptT, rA)) {
+					bInside = true;
+					break;
+				} else if(!bg::touches(ptT, rA)) {
+					bInside = false;
+					break;
+				}
+			}
+
+			if(((bInside && inside) || (!bInside && !inside)) && (!bg::overlaps(translated, rA) && !bg::covered_by(translated, rA) && !bg::covered_by(rA, translated)) && !inNfp(translated.front(), nfp)){
+				result = testTranslation;
+				return true;
+			}
+
+			const point_t& nextPtA = rA[i + 1];
+			TranslationVector slideVector;
+			slideVector.vector_ = nextPtA - ptA;
+			slideVector.edge_ = {ptA, nextPtA};
+			slideVector.fromA_ = true;
+			TranslationVector trimmed = trimVector(rA, translated, slideVector);
+			polygon_t::ring_type translated2;
+			trans::translate_transformer<coord_t, 2, 2> trans(trimmed.vector_.x_, trimmed.vector_.y_);
+			boost::geometry::transform(translated, translated2, trans);
+
+			//check if the translated rB is identical to rA
+			identical = true;
+			for(const auto& ptT: translated2) {
+				for(const auto& ptA: rA) {
+					if(ptT != ptA) {
+						identical = false;
+						break;
+					}
+				}
+				if(!identical)
+					break;
+			}
+
+			if(identical)
+				return false;
+
+			bInside = false;
+			for(const auto& ptT: translated2) {
+				if(bg::within(ptT, rA)) {
+					bInside = true;
+					break;
+				} else if(!bg::touches(ptT, rA)) {
+					bInside = false;
+					break;
+				}
+			}
+
+			if(((bInside && inside) || (!bInside && !inside)) && (!bg::overlaps(translated2, rA) && !bg::covered_by(translated2, rA) && !bg::covered_by(rA, translated2)) && !inNfp(translated2.front(), nfp)){
+				result = trimmed.vector_;
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+void slide(polygon_t::ring_type& rA, polygon_t::ring_type& rB, std::vector<polygon_t::ring_type>& nfp, const point_t& transB) {
+	polygon_t::ring_type rifsB;
+	boost::geometry::transform(rB, rifsB, trans::translate_transformer<coord_t, 2, 2>(transB.x_, transB.y_));
+	rB = std::move(rifsB);
+
+	write_svg<polygon_t::ring_type>("ifs.svg", {rA, rB});
+
+	bool startAvailable = true;
+	psize_t cnt = 0;
+	point_t referenceStart = rB.front();
+	TranslationVector last;
+	last.vector_ = INVALID_POINT;
+
+	//generate the nfp for the ring
+	while(startAvailable) {
+		//use first point of rB as reference
+		nfp.back().push_back(rB.front());
+
+		std::vector<TouchingPoint> touchers = findTouchingPoints(rA, rB);
+		std::set<TranslationVector> transVectors = findFeasibleTranslationVectors(rA, rB, touchers);
+		if(transVectors.empty()) {
+			std::cerr << "empty" << std::endl;
+		}
+		assert(!transVectors.empty());
+
+		std::cerr << "collected vectors: " << transVectors.size() << std::endl;
+		for(auto pt : transVectors) {
+			std::cerr << pt << std::endl;
+		}
+
+		TranslationVector next;
+		if(transVectors.size() > 1)
+			next = selectNextTranslationVector(rA, rB, transVectors, last);
+		else
+			next = *transVectors.begin();
+		std::cerr << "next: " << next << std::endl;
+		last = next;
+		TranslationVector trimmed = trimVector(rA, rB, next);
+		std::cerr << "trimmed: " << trimmed << std::endl;
+		if(trimmed.vector_ == point_t{1,0}) {
+			std::cerr << "bp" << std::endl;
+		}
+		polygon_t::ring_type nextRB;
+		boost::geometry::transform(rB, nextRB, trans::translate_transformer<coord_t, 2, 2>(trimmed.vector_.x_, trimmed.vector_.y_));
+		rB = std::move(nextRB);
+
+		write_svg<polygon_t::ring_type>("next" + std::to_string(cnt) + ".svg", {rA,rB});
+		++cnt;
+		if(referenceStart == rB.front()) {
+			startAvailable = false;
+		}
+	}
+}
+
 int main(int argc, char** argv) {
 	//TODO: tweak bg's floating point tolerance
 	//TODO: remove superfluous points
 	polygon_t pA;
 	polygon_t pB;
-	polygon_t nfp;
+	std::vector<polygon_t::ring_type> nfp;
 
 	read_polygon(argv[1], pA);
 	read_polygon(argv[2], pB);
@@ -602,61 +784,18 @@ int main(int argc, char** argv) {
 		pBstart = pB.outer()[ptybmaxI.front()];
 	}
 
+	nfp.push_back({});
 	point_t transB = {pAstart - pBstart};
-
-	polygon_t pifsB;
-	boost::geometry::transform(pB, pifsB, trans::translate_transformer<coord_t, 2, 2>(transB.x_, transB.y_));
-	pB = std::move(pifsB);
-
-	write_svg<polygon_t>("ifs.svg", {pA, pB});
-
-	bool startAvailable = true;
-	psize_t cnt = 0;
-	point_t referenceStart = pB.outer().front();
-	TranslationVector last;
-	last.vector_ = INVALID_POINT;
-
-	while(startAvailable) {
-		//use first point of pB as reference
-		nfp.outer().push_back(pB.outer().front());
-		if(cnt == 14) {
-			std::cerr << "bp" << std::endl;
-		}
-		std::vector<TouchingPoint> touchers = findTouchingPoints(pA.outer(), pB.outer());
-		std::set<TranslationVector> transVectors = findFeasibleTranslationVectors(pA.outer(), pB.outer(), touchers);
-		if(transVectors.empty()) {
-			std::cerr << "empty" << std::endl;
-		}
-		assert(!transVectors.empty());
-
-		std::cerr << "collected vectors: " << transVectors.size() << std::endl;
-		for(auto pt : transVectors) {
-			std::cerr << pt << std::endl;
-		}
-
-		TranslationVector next;
-		if(transVectors.size() > 1)
-			next = findNextTranslationVector(pA.outer(), pB.outer(), transVectors, last);
-		else
-			next = *transVectors.begin();
-		std::cerr << "next: " << next << std::endl;
-		last = next;
-		TranslationVector trimmed = trimVector(pA.outer(), pB.outer(), next);
-		std::cerr << "trimmed: " << trimmed << std::endl;
-
-		polygon_t nextB;
-		boost::geometry::transform(pB, nextB, trans::translate_transformer<coord_t, 2, 2>(trimmed.vector_.x_, trimmed.vector_.y_));
-		pB = std::move(nextB);
-
-
-
-
-		write_svg<polygon_t>("next" + std::to_string(cnt) + ".svg", {pA,pB});
-		++cnt;
-		if(referenceStart == pB.outer().front())
-			startAvailable = false;
+	slide(pA.outer(), pB.outer(), nfp, transB);
+	std::cerr << "##### outer #####" << std::endl;
+	point_t startTrans;
+  while(searchStartTranslation(pA.outer(), pB.outer(), nfp, false, startTrans)) {
+		nfp.push_back({});
+		slide(pA.outer(), pB.outer(), nfp, startTrans);
+		std::cerr << "##### interlock #####" << std::endl;
 	}
-	write_svg<polygon_t>("nfp.svg", {pA,pB,nfp});
+
+	write_svg("nfp.svg", {pA,pB}, nfp);
 
 	return 0;
 }
