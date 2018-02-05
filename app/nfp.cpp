@@ -374,7 +374,7 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 	return vectors;
 }
 
-TranslationVector findNextTranslationVector(const polygon_t::ring_type& rA,	const polygon_t::ring_type& rB, const std::set<TranslationVector>& tvs, const TranslationVector& last) {
+TranslationVector findNextTranslationVector(const polygon_t::ring_type& rA,	const polygon_t::ring_type& rB, std::set<TranslationVector> tvs, const TranslationVector& last) {
 	if(last.vector_ != INVALID_POINT) {
 		point_t later;
 		if(last.vector_ == (last.edge_.second - last.edge_.first)) {
@@ -400,36 +400,48 @@ TranslationVector findNextTranslationVector(const polygon_t::ring_type& rA,	cons
 
 		for(const auto& ve: viableEdges) {
 			for(auto& tv : tvs) {
-				if((tv.fromA_ && (tv.vector_ == (ve.second - ve.first) || tv.vector_ == (ve.first - ve.second)))) {
+				if((tv.fromA_ && (tv.vector_ == (ve.second - ve.first)))) {
 					polygon_t::ring_type translated;
 					trans::translate_transformer<coord_t, 2, 2> translate(tv.vector_.x_, tv.vector_.y_);
 					boost::geometry::transform(rB, translated, translate);
 					std::vector<point_t> intersectRes;
 					bg::intersection(rA,translated, intersectRes);
-					if(!intersectRes.empty() && (!bg::covered_by(translated, rA) && !bg::covered_by(rA, translated)))  {
+					if(!intersectRes.empty() && (!bg::overlaps(translated, rA) && !bg::covered_by(translated, rA) && !bg::covered_by(rA, translated)))  {
 						return tv;
 					}
 				} else if(!tv.fromA_) {
 					point_t later;
 					if(tv.vector_ == (tv.edge_.second - tv.edge_.first)) {
-						later = last.edge_.second;
+						later = tv.edge_.second;
 					} else {
-						later = last.edge_.first;
+						later = tv.edge_.first;
 					}
 
-					if(later == ve.first || later == ve.second) {
+					if(later == ve.first) {
 						polygon_t::ring_type translated;
 						trans::translate_transformer<coord_t, 2, 2> translate(tv.vector_.x_, tv.vector_.y_);
 						boost::geometry::transform(rB, translated, translate);
 						std::vector<point_t> intersectRes;
 						bg::intersection(rA,translated, intersectRes);
-						if(!intersectRes.empty() && (!bg::covered_by(translated, rA) && !bg::covered_by(rA, translated)))  {
+						if(!intersectRes.empty() && (!bg::overlaps(translated, rA) && !bg::covered_by(translated, rA) && !bg::covered_by(rA, translated)))  {
+							segment_t translatedEdge;
+							boost::geometry::transform(tv.edge_, translatedEdge, translate);
+							for(const auto& ve : viableEdges) {
+								if(ve == translatedEdge) {
+									TranslationVector newTv;
+									newTv = tv;
+									newTv.edge_ = ve;
+									newTv.fromA_ = true;
+									return newTv;
+								}
+							}
 							return tv;
 						}
 					}
 				}
 			}
 		}
+
 		assert(false);
 		return TranslationVector();
 	} else {
@@ -440,7 +452,7 @@ TranslationVector findNextTranslationVector(const polygon_t::ring_type& rA,	cons
 			boost::geometry::transform(rB, translated, translate);
 			std::vector<point_t> intersectRes;
 			bg::intersection(rA,translated, intersectRes);
-			if(!intersectRes.empty() && (!bg::covered_by(translated, rA) && !bg::covered_by(rA, translated)))  {
+			if(!intersectRes.empty() && (!bg::overlaps(translated, rA) && !bg::covered_by(translated, rA) && !bg::covered_by(rA, translated)))  {
 					notDisconnectingTranslation.push_back(tv);
 			}
 		}
@@ -607,7 +619,7 @@ int main(int argc, char** argv) {
 	while(startAvailable) {
 		//use first point of pB as reference
 		nfp.outer().push_back(pB.outer().front());
-		if(cnt == 4) {
+		if(cnt == 14) {
 			std::cerr << "bp" << std::endl;
 		}
 		std::vector<TouchingPoint> touchers = findTouchingPoints(pA.outer(), pB.outer());
