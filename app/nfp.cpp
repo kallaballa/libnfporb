@@ -182,7 +182,7 @@ void write_svg(std::string const& filename,	typename std::vector<polygon_t> cons
 		mapper.add(p);
 		mapper.map(p, "fill-opacity:0.5;fill:rgb(153,204,0);stroke:rgb(153,204,0);stroke-width:2");
 	}
-
+	bg::correct(nfppoly);
 	mapper.add(nfppoly);
 	mapper.map(nfppoly, "fill-opacity:0.5;fill:rgb(204,153,0);stroke:rgb(204,153,0);stroke-width:2");
 }
@@ -334,15 +334,19 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 			if(al == LEFT) {
 				//no feasible translation
 			} else if(al == RIGHT) {
-				potentialVectors.insert({b1.first - b1.second, b1});
+				potentialVectors.insert({b1.first - b1.second, b1, false});
 			} else {
-				potentialVectors.insert({a2.second - a2.first, a2});
+				potentialVectors.insert({a2.second - a2.first, a2, true});
 			}
 		} else if (touchers[i].type_ == TouchingPoint::B_ON_A) {
 			touchEdges.push_back({{vertexB, vertexA}, {vertexB, prevB}});
 			touchEdges.push_back({{vertexB, vertexA}, {vertexB, nextB}});
-			touchEdges.push_back({{vertexB, prevA}, {vertexB, prevB}});
-			touchEdges.push_back({{vertexB, nextA}, {vertexB, nextB}});
+			if(bg::intersects(vertexB, segment_t(vertexA, prevA))) {
+				touchEdges.push_back({{vertexB, prevA}, {vertexB, prevB}});
+			}
+			if(bg::intersects(vertexB, segment_t(vertexA, nextA))) {
+				touchEdges.push_back({{vertexB, nextA}, {vertexB, nextB}});
+			}
 			potentialVectors.insert({{ vertexA.x_ - vertexB.x_, vertexA.y_ - vertexB.y_ }, {vertexB, vertexA}, true});
 		} else if (touchers[i].type_ == TouchingPoint::A_ON_B) {
 			//TODO testme
@@ -350,6 +354,7 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 			touchEdges.push_back({{vertexA, nextA}, {vertexA, vertexB}});
 			touchEdges.push_back({{vertexA, prevA}, {vertexA, prevB}});
 			touchEdges.push_back({{vertexA, nextA}, {vertexA, prevB}});
+
 
 			potentialVectors.insert({{  vertexA.x_ - vertexB.x_, vertexA.y_ - vertexB.y_}, {vertexA, vertexB}, false});
 		}
@@ -434,13 +439,17 @@ TranslationVector selectNextTranslationVector(const polygon_t::ring_type& rA,	co
 					if(!intersectRes.empty() && (!bg::overlaps(translated, rA) && !bg::covered_by(translated, rA) && !bg::covered_by(rA, translated)))  {
 						return tv;
 					}
-				} else if(!tv.fromA_) {
+				}
+			}
+			for(auto& tv : tvs) {
+				if(!tv.fromA_) {
 					point_t later;
 					if(tv.vector_ == (tv.edge_.second - tv.edge_.first)) {
 						later = tv.edge_.second;
-					} else {
+					} else if(tv.vector_ == (tv.edge_.first - tv.edge_.second)) {
 						later = tv.edge_.first;
-					}
+					} else
+						continue;
 
 					if(later == ve.first) {
 						polygon_t::ring_type translated;
@@ -698,7 +707,9 @@ void slide(polygon_t::ring_type& rA, polygon_t::ring_type& rB, std::vector<polyg
 	while(startAvailable) {
 		//use first point of rB as reference
 		nfp.back().push_back(rB.front());
-
+		if(cnt == 12) {
+			std::cerr << "bp" << std::endl;
+		}
 		std::vector<TouchingPoint> touchers = findTouchingPoints(rA, rB);
 		std::set<TranslationVector> transVectors = findFeasibleTranslationVectors(rA, rB, touchers);
 		if(transVectors.empty()) {
