@@ -341,12 +341,8 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 		} else if (touchers[i].type_ == TouchingPoint::B_ON_A) {
 			touchEdges.push_back({{vertexB, vertexA}, {vertexB, prevB}});
 			touchEdges.push_back({{vertexB, vertexA}, {vertexB, nextB}});
-			if(bg::intersects(vertexB, segment_t(vertexA, prevA))) {
 				touchEdges.push_back({{vertexB, prevA}, {vertexB, prevB}});
-			}
-			if(bg::intersects(vertexB, segment_t(vertexA, nextA))) {
 				touchEdges.push_back({{vertexB, nextA}, {vertexB, nextB}});
-			}
 			potentialVectors.insert({{ vertexA.x_ - vertexB.x_, vertexA.y_ - vertexB.y_ }, {vertexB, vertexA}, true});
 		} else if (touchers[i].type_ == TouchingPoint::A_ON_B) {
 			//TODO testme
