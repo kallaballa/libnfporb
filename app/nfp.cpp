@@ -5,6 +5,7 @@
 #include <streambuf>
 #include <vector>
 #include <set>
+#include <random>
 
 #include <boost/geometry.hpp>
 #include <boost/geometry/geometries/point_xy.hpp>
@@ -22,6 +23,8 @@ using std::string;
 typedef double coord_t;
 const coord_t MAX_COORD = std::numeric_limits<coord_t>::max();
 const coord_t MIN_COORD = std::numeric_limits<coord_t>::min();
+
+bool equals(const coord_t& lhs, const coord_t& rhs);
 
 class point_t {
 public:
@@ -42,7 +45,7 @@ public:
 	}
 
 	bool operator==(const point_t&  other) const {
-      return  (this->x_ == other.x_) && (this->y_ == other.y_);
+			return bg::equals(this, other);
   }
 
   bool operator!=(const point_t&  other) const {
@@ -50,9 +53,13 @@ public:
   }
 
 	bool operator<(const point_t&  other) const {
-      return  (this->x_ < other.x_) || ((this->x_ == other.x_) && (this->y_ < other.y_));
+      return  (this->x_ < other.x_) || (equals(this->x_, other.x_) && (this->y_ < other.y_));
   }
 };
+
+bool equals(const coord_t& lhs, const coord_t& rhs) {
+	return bg::equals(point_t{lhs,lhs}, point_t{rhs,rhs});
+}
 
 std::ostream& operator<<(std::ostream& os, const point_t& p) {
 	os << "{" << p.x_ << "," << p.y_ << "}";
@@ -94,16 +101,16 @@ point_t normalize(const point_t& pt) {
 	return norm;
 }
 
-Alignment get_aligment(const segment_t& seg, const point_t& pt){
+Alignment get_alignment(const segment_t& seg, const point_t& pt){
 	coord_t res = ((seg.second.x_ - seg.first.x_)*(pt.y_ - seg.first.y_)
 			- (seg.second.y_ - seg.first.y_)*(pt.x_ - seg.first.x_));
 
-	if(res > 0) {
-		return LEFT;
-	} else if (res < 0) {
-		return RIGHT;
-	} else {
+	if(equals(res, 0)) {
 		return ON;
+	} else	if(res > 0) {
+		return LEFT;
+	} else {
+		return RIGHT;
 	}
 }
 
@@ -220,7 +227,7 @@ std::vector<psize_t> find_minimum_y(const polygon_t& p) {
 			result.clear();
 			min = po[i].y_;
 			result.push_back(i);
-		} else if (po[i].y_ == min) {
+		} else if (equals(po[i].y_, min)) {
 			result.push_back(i);
 		}
 	}
@@ -236,7 +243,7 @@ std::vector<psize_t> find_maximum_y(const polygon_t& p) {
 			result.clear();
 			max = po[i].y_;
 			result.push_back(i);
-		} else if (po[i].y_ == max) {
+		} else if (equals(po[i].y_, max)) {
 			result.push_back(i);
 		}
 	}
@@ -257,11 +264,11 @@ std::vector<TouchingPoint> findTouchingPoints(const polygon_t::ring_type& ringA,
 		psize_t nextI = i+1;
 		for(psize_t j = 0; j < ringB.size() - 1; j++) {
 			psize_t nextJ = j+1;
-			if(bg::intersects(ringA[i], ringB[j])) {
+			if(ringA[i] == ringB[j]) {
 				touchers.push_back({TouchingPoint::VERTEX, i, j});
-			} else if (!bg::intersects(ringA[nextI], ringB[j]) && bg::intersects(segment_t(ringA[i],ringA[nextI]), ringB[j])) {
+			} else if (ringA[nextI] != ringB[j] && bg::intersects(segment_t(ringA[i],ringA[nextI]), ringB[j])) {
 				touchers.push_back({TouchingPoint::B_ON_A, nextI, j});
-			} else if (!bg::intersects(ringB[nextJ], ringA[i]) && bg::intersects(segment_t(ringB[j],ringB[nextJ]), ringA[i])) {
+			} else if (ringB[nextJ] != ringA[i] && bg::intersects(segment_t(ringB[j],ringB[nextJ]), ringA[i])) {
 				touchers.push_back({TouchingPoint::A_ON_B, i, nextJ});
 			}
 		}
@@ -318,7 +325,7 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 			//TODO test parallel edges for floating point stability
 			Alignment al;
 			//a1 and b1 meet at start vertex
-			al = get_aligment(a1, b1.second);
+			al = get_alignment(a1, b1.second);
 			if(al == LEFT) {
 				potentialVectors.insert({b1.first - b1.second, b1, false});
 			} else if(al == RIGHT) {
@@ -328,7 +335,7 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 			}
 
 			//a1 and b2 meet at start and end
-			al = get_aligment(a1, b2.first);
+			al = get_alignment(a1, b2.first);
 			if(al == LEFT) {
 				//no feasible translation
 			} else if(al == RIGHT) {
@@ -338,7 +345,7 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 			}
 
 			//a2 and b1 meet at end and start
-			al = get_aligment(a2, b1.second);
+			al = get_alignment(a2, b1.second);
 			if(al == LEFT) {
 				//no feasible translation
 			} else if(al == RIGHT) {
@@ -351,17 +358,25 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 			touchEdges.push_back({{vertexB, vertexA}, {vertexB, nextB}});
 			if(bg::intersects(vertexB, segment_t(vertexA, prevA))) {
 				touchEdges.push_back({{vertexB, prevA}, {vertexB, prevB}});
+				touchEdges.push_back({{vertexB, prevA}, {vertexB, nextB}});
 			}
 			if(bg::intersects(vertexB, segment_t(vertexA, nextA))) {
+				touchEdges.push_back({{vertexB, nextA}, {vertexB, prevB}});
 				touchEdges.push_back({{vertexB, nextA}, {vertexB, nextB}});
 			}
 			potentialVectors.insert({{ vertexA.x_ - vertexB.x_, vertexA.y_ - vertexB.y_ }, {vertexB, vertexA}, true});
 		} else if (touchers[i].type_ == TouchingPoint::A_ON_B) {
 			//TODO testme
-			touchEdges.push_back({{vertexA, prevA}, {vertexA, vertexB}});
-			touchEdges.push_back({{vertexA, nextA}, {vertexA, vertexB}});
-			touchEdges.push_back({{vertexA, prevA}, {vertexA, prevB}});
-			touchEdges.push_back({{vertexA, nextA}, {vertexA, prevB}});
+			segment_t a1 = {vertexA, prevA};
+			segment_t a2 = {vertexA, nextA};
+			segment_t b1 = {vertexA, vertexB};
+			segment_t b2 = {vertexA, prevB};
+			write_svg<segment_t>("touchers" + std::to_string(i) + ".svg", {a1,a2,b1,b2});
+
+			touchEdges.push_back({a1, b1});
+			touchEdges.push_back({a2, b1});
+			touchEdges.push_back({a1, b2});
+			touchEdges.push_back({a2, b2});
 
 
 			potentialVectors.insert({{  vertexA.x_ - vertexB.x_, vertexA.y_ - vertexB.y_}, {vertexA, vertexB}, false});
@@ -378,14 +393,15 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 			trans::translate_transformer<coord_t, 2, 2> translate(v.vector_.x_, v.vector_.y_);
 			boost::geometry::transform(transStart, transEnd, translate);
 			segment_t transSeg(transStart, transEnd);
-			Alignment a1 = get_aligment(transSeg, sp.first.second);
-			Alignment a2 = get_aligment(transSeg, sp.second.second);
+			Alignment a1 = get_alignment(transSeg, sp.first.second);
+			Alignment a2 = get_alignment(transSeg, sp.second.second);
 			if(a1 == a2 && a1 != ON) {
 				// both segments are either left or right of the translation segment
 				double df = get_inner_angle(transStart, transEnd, sp.first.second);
 				if(std::isnan(df)) {
 					df = 0;
 				}
+
 				double ds = get_inner_angle(transStart, transEnd, sp.second.second);
 				if(std::isnan(ds)) {
 					ds = 0;
@@ -399,7 +415,7 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 						break;
 					}
 				} else {
-					if(df <= ds) {
+					if(equals(df, ds) || df < ds) {
 						discarded = true;
 						break;
 					}
@@ -733,6 +749,7 @@ bool slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type& rB, st
 			std::cerr << "bp" << std::endl;
 		}
 		std::vector<TouchingPoint> touchers = findTouchingPoints(rA, rB);
+		assert(!touchers.empty());
 		std::set<TranslationVector> transVectors = findFeasibleTranslationVectors(rA, rB, touchers);
 		if(transVectors.empty()) {
 			std::cerr << "empty" << std::endl;
@@ -781,6 +798,48 @@ int main(int argc, char** argv) {
 	read_polygon(argv[2], pB);
 	assert(pA.outer().size() > 2);
 	assert(pB.outer().size() > 2);
+/*
+  std::random_device rd;
+  std::mt19937 mt(rd());
+  std::uniform_real_distribution<double> dist(-1.0, 1.0);
+
+	for(auto& ptA : pA.outer()) {
+		ptA.x_ += dist(mt);
+		ptA.y_ += dist(mt);
+		ptA.x_ = std::round(ptA.x_);
+		ptA.y_ = std::round(ptA.y_);
+	}
+	pA.outer().back() = pA.outer().front();
+
+	for(auto& ptB : pB.outer()) {
+		ptB.x_ += dist(mt);
+		ptB.y_ += dist(mt);
+		ptB.x_ = std::round(ptB.x_);
+		ptB.y_ = std::round(ptB.y_);
+	}
+	pB.outer().back() = pB.outer().front();
+
+	for(auto& rA : pA.inners()) {
+		for(auto& ptA : rA) {
+			ptA.x_ += dist(mt);
+			ptA.y_ += dist(mt);
+			ptA.x_ = std::round(ptA.x_);
+			ptA.y_ = std::round(ptA.y_);
+		}
+		rA.back() = rA.front();
+	}
+
+	for(auto& rB : pB.inners()) {
+		for(auto& ptB : rB) {
+			ptB.x_ += dist(mt);
+			ptB.y_ += dist(mt);
+			ptB.x_ = std::round(ptB.x_);
+			ptB.y_ = std::round(ptB.y_);
+		}
+		rB.back() = rB.front();
+	}
+
+*/
 	write_svg<polygon_t>("start.svg", {pA, pB});
 	std::cout << bg::wkt(pA) << std::endl;
 	std::cout << bg::wkt(pB) << std::endl;
