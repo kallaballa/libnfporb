@@ -186,6 +186,13 @@ void write_svg(std::string const& filename,	typename std::vector<polygon_t> cons
 	bg::correct(nfppoly);
 	mapper.add(nfppoly);
 	mapper.map(nfppoly, "fill-opacity:0.5;fill:rgb(204,153,0);stroke:rgb(204,153,0);stroke-width:2");
+
+	for(auto& r: nfppoly.inners()) {
+		if(r.size() == 1) {
+			mapper.add(r.front());
+			mapper.map(r.front(), "fill-opacity:0.5;fill:rgb(204,153,0);stroke:rgb(204,153,0);stroke-width:2");
+		}
+	}
 }
 
 void read_polygon(const string& filename, polygon_t& p) {
@@ -569,7 +576,11 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 			}
 		}
 
-		assert(!notDisconnectingTranslation.empty());
+		if(notDisconnectingTranslation.empty()) {
+			TranslationVector tv;
+			tv.vector_ = INVALID_POINT;
+			return tv;
+		}
 
 		coord_t len;
 		coord_t maxLen = MIN_COORD;
@@ -597,7 +608,13 @@ bool inNfp(const point_t& pt, std::vector<polygon_t::ring_type> nfp) {
 	return false;
 }
 
-bool searchStartTranslation(polygon_t::ring_type& rA, const polygon_t::ring_type& rB, const std::vector<polygon_t::ring_type>& nfp,const bool& inside, point_t& result) {
+enum SearchStartResult {
+	FIT,
+	FOUND,
+	NOT_FOUND
+};
+
+SearchStartResult searchStartTranslation(polygon_t::ring_type& rA, const polygon_t::ring_type& rB, const std::vector<polygon_t::ring_type>& nfp,const bool& inside, point_t& result) {
 	for(psize_t i = 0; i < rA.size() -1; i++) {
 		auto& ptA = rA[i];
 
@@ -612,11 +629,12 @@ bool searchStartTranslation(polygon_t::ring_type& rA, const polygon_t::ring_type
 			boost::geometry::transform(rB, translated, trans::translate_transformer<coord_t, 2, 2>(testTranslation.x_, testTranslation.y_));
 
 			//check if the translated rB is identical to rA
-			bool identical = true;
+			bool identical = false;
 			for(const auto& ptT: translated) {
+				identical = false;
 				for(const auto& ptA: rA) {
-					if(ptT != ptA) {
-						identical = false;
+					if(ptT == ptA) {
+						identical = true;
 						break;
 					}
 				}
@@ -624,8 +642,10 @@ bool searchStartTranslation(polygon_t::ring_type& rA, const polygon_t::ring_type
 					break;
 			}
 
-			if(identical)
-				return false;
+			if(identical) {
+				result = testTranslation;
+				return FIT;
+			}
 
 			bool bInside = false;
 			for(const auto& ptT: translated) {
@@ -640,7 +660,7 @@ bool searchStartTranslation(polygon_t::ring_type& rA, const polygon_t::ring_type
 
 			if(((bInside && inside) || (!bInside && !inside)) && (!bg::overlaps(translated, rA) && !bg::covered_by(translated, rA) && !bg::covered_by(rA, translated)) && !inNfp(translated.front(), nfp)){
 				result = testTranslation;
-				return true;
+				return FOUND;
 			}
 
 			const point_t& nextPtA = rA[i + 1];
@@ -654,11 +674,12 @@ bool searchStartTranslation(polygon_t::ring_type& rA, const polygon_t::ring_type
 			boost::geometry::transform(translated, translated2, trans);
 
 			//check if the translated rB is identical to rA
-			identical = true;
-			for(const auto& ptT: translated2) {
+			identical = false;
+			for(const auto& ptT: translated) {
+				identical = false;
 				for(const auto& ptA: rA) {
-					if(ptT != ptA) {
-						identical = false;
+					if(ptT == ptA) {
+						identical = true;
 						break;
 					}
 				}
@@ -666,8 +687,10 @@ bool searchStartTranslation(polygon_t::ring_type& rA, const polygon_t::ring_type
 					break;
 			}
 
-			if(identical)
-				return false;
+			if(identical) {
+				result = trimmed.vector_ + testTranslation;
+				return FIT;
+			}
 
 			bInside = false;
 			for(const auto& ptT: translated2) {
@@ -682,14 +705,14 @@ bool searchStartTranslation(polygon_t::ring_type& rA, const polygon_t::ring_type
 
 			if(((bInside && inside) || (!bInside && !inside)) && (!bg::overlaps(translated2, rA) && !bg::covered_by(translated2, rA) && !bg::covered_by(rA, translated2)) && !inNfp(translated2.front(), nfp)){
 				result = trimmed.vector_ + testTranslation;
-				return true;
+				return FOUND;
 			}
 		}
 	}
-	return false;
+	return NOT_FOUND;
 }
 
-void slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type& rB, std::vector<polygon_t::ring_type>& nfp, const point_t& transB) {
+bool slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type& rB, std::vector<polygon_t::ring_type>& nfp, const point_t& transB) {
 	polygon_t::ring_type rifsB;
 	boost::geometry::transform(rB, rifsB, trans::translate_transformer<coord_t, 2, 2>(transB.x_, transB.y_));
 	rB = std::move(rifsB);
@@ -727,6 +750,8 @@ void slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type& rB, st
 			next = selectNextTranslationVector(pA, rA, rB, transVectors, last);
 		else
 			next = *transVectors.begin();
+		if(next.vector_ == INVALID_POINT)
+			return false;
 		std::cerr << "next: " << next << std::endl;
 		last = next;
 		TranslationVector trimmed = trimVector(rA, rB, next);
@@ -742,6 +767,7 @@ void slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type& rB, st
 			startAvailable = false;
 		}
 	}
+	return true;
 }
 
 int main(int argc, char** argv) {
@@ -798,19 +824,47 @@ int main(int argc, char** argv) {
 	slide(pA, pA.outer(), pB.outer(), nfp, transB);
 	std::cerr << "##### outer #####" << std::endl;
 	point_t startTrans;
-  while(searchStartTranslation(pA.outer(), pB.outer(), nfp, false, startTrans)) {
-		nfp.push_back({});
-		std::cerr << "##### interlock start #####" << std::endl;
-		slide(pA, pA.outer(), pB.outer(), nfp, startTrans);
-		std::cerr << "##### interlock end #####" << std::endl;
+  while(true) {
+  	SearchStartResult res = searchStartTranslation(pA.outer(), pB.outer(), nfp, false, startTrans);
+  	if(res == FOUND) {
+			nfp.push_back({});
+			std::cerr << "##### interlock start #####" << std::endl;
+			if(!slide(pA, pA.outer(), pB.outer(), nfp, startTrans)) {
+				//no initial slide found -> jiggsaw
+				nfp.push_back({});
+				nfp.back().push_back(pB.outer().front());
+			}
+			std::cerr << "##### interlock end #####" << std::endl;
+  	} else if(res == FIT) {
+  		point_t reference = pB.outer().front();
+  		point_t translated;
+			trans::translate_transformer<coord_t, 2, 2> translate(startTrans.x_, startTrans.y_);
+			boost::geometry::transform(reference, translated, translate);
+			nfp.push_back({});
+			nfp.back().push_back(translated);
+			break;
+  	} else
+  		break;
 	}
 
   for(auto& rA : pA.inners()) {
-		while(searchStartTranslation(rA, pB.outer(), nfp, true, startTrans)) {
-			nfp.push_back({});
-			std::cerr << "##### hole start #####" << std::endl;
-			slide(pA, rA, pB.outer(), nfp, startTrans);
-			std::cerr << "##### hole end #####" << std::endl;
+		while(true) {
+			SearchStartResult res = searchStartTranslation(rA, pB.outer(), nfp, true, startTrans);
+			if(res == FOUND) {
+				nfp.push_back({});
+				std::cerr << "##### hole start #####" << std::endl;
+				slide(pA, rA, pB.outer(), nfp, startTrans);
+				std::cerr << "##### hole end #####" << std::endl;
+			} else if(res == FIT) {
+	  		point_t reference = pB.outer().front();
+	  		point_t translated;
+				trans::translate_transformer<coord_t, 2, 2> translate(startTrans.x_, startTrans.y_);
+				boost::geometry::transform(reference, translated, translate);
+				nfp.push_back({});
+				nfp.back().push_back(translated);
+				break;
+			} else
+				break;
 		}
   }
 
