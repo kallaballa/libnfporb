@@ -37,7 +37,11 @@ public:
 		return {this->x_ - other.x_, this->y_ - other.y_};
 	}
 
-  bool operator==(const point_t&  other) const {
+	point_t operator+(const point_t& other) const {
+		return {this->x_ + other.x_, this->y_ + other.y_};
+	}
+
+	bool operator==(const point_t&  other) const {
       return  (this->x_ == other.x_) && (this->y_ == other.y_);
   }
 
@@ -103,26 +107,14 @@ Alignment get_aligment(const segment_t& seg, const point_t& pt){
 	}
 }
 
-coord_t get_inner_angle(const point_t& joint, const point_t& end1, const point_t& end2) {
+double get_inner_angle(const point_t& joint, const point_t& end1, const point_t& end2) {
 	coord_t dx21 = end1.x_-joint.x_;
 	coord_t dx31 = end2.x_-joint.x_;
 	coord_t dy21 = end1.y_-joint.y_;
 	coord_t dy31 = end2.y_-joint.y_;
-	coord_t m12 = sqrt( dx21*dx21 + dy21*dy21 );
-	coord_t m13 = sqrt( dx31*dx31 + dy31*dy31 );
+	double m12 = sqrt( dx21*dx21 + dy21*dy21 );
+	double m13 = sqrt( dx31*dx31 + dy31*dy31 );
 	return acos( (dx21*dx31 + dy21*dy31) / (m12 * m13) );
-}
-
-coord_t get_slope(const segment_t& seg, bool invert = false) {
-  int d_x = seg.second.x_ - seg.first.x_;
-  int d_y = seg.second.y_ - seg.first.y_;
-
-  if(invert) {
-    d_x = -d_x;
-    d_y = -d_y;
-  }
-
-  return atan2(d_x, -d_y);
 }
 
 struct TouchingPoint {
@@ -216,7 +208,7 @@ std::vector<psize_t> find_minimum_y(const polygon_t& p) {
 	std::vector<psize_t> result;
 	coord_t min = MAX_COORD;
 	auto& po = p.outer();
-	for(psize_t i = 0; i < p.outer().size(); ++i) {
+	for(psize_t i = 0; i < p.outer().size() - 1; ++i) {
 		if(po[i].y_ < min) {
 			result.clear();
 			min = po[i].y_;
@@ -232,7 +224,7 @@ std::vector<psize_t> find_maximum_y(const polygon_t& p) {
 	std::vector<psize_t> result;
 	coord_t max = MIN_COORD;
 	auto& po = p.outer();
-	for(psize_t i = 0; i < p.outer().size(); ++i) {
+	for(psize_t i = 0; i < p.outer().size() - 1; ++i) {
 		if(po[i].y_ > max) {
 			result.clear();
 			max = po[i].y_;
@@ -383,11 +375,11 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 			Alignment a2 = get_aligment(transSeg, sp.second.second);
 			if(a1 == a2 && a1 != ON) {
 				// both segments are either left or right of the translation segment
-				coord_t df = get_inner_angle(transStart, transEnd, sp.first.second);
+				double df = get_inner_angle(transStart, transEnd, sp.first.second);
 				if(std::isnan(df)) {
 					df = 0;
 				}
-				coord_t ds = get_inner_angle(transStart, transEnd, sp.second.second);
+				double ds = get_inner_angle(transStart, transEnd, sp.second.second);
 				if(std::isnan(ds)) {
 					ds = 0;
 				}
@@ -691,7 +683,7 @@ bool searchStartTranslation(polygon_t::ring_type& rA, const polygon_t::ring_type
 			}
 
 			if(((bInside && inside) || (!bInside && !inside)) && (!bg::overlaps(translated2, rA) && !bg::covered_by(translated2, rA) && !bg::covered_by(rA, translated2)) && !inNfp(translated2.front(), nfp)){
-				result = trimmed.vector_;
+				result = trimmed.vector_ + testTranslation;
 				return true;
 			}
 		}
