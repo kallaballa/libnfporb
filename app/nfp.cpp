@@ -37,11 +37,15 @@ public:
 	coord_t y_;
 
 	point_t operator-(const point_t& other) const {
-		return {this->x_ - other.x_, this->y_ - other.y_};
+		point_t result = *this;
+		bg::subtract_point(result, other);
+		return result;
 	}
 
 	point_t operator+(const point_t& other) const {
-		return {this->x_ + other.x_, this->y_ + other.y_};
+		point_t result = *this;
+		bg::add_point(result, other);
+		return result;
 	}
 
 	bool operator==(const point_t&  other) const {
@@ -53,12 +57,20 @@ public:
   }
 
 	bool operator<(const point_t&  other) const {
-      return  (this->x_ < other.x_) || (equals(this->x_, other.x_) && (this->y_ < other.y_));
+      return  boost::geometry::math::smaller(this->x_, other.x_) || (equals(this->x_, other.x_) && boost::geometry::math::smaller(this->y_, other.y_));
   }
 };
 
+bool larger(const coord_t& lhs, const coord_t& rhs) {
+	return boost::geometry::math::larger(lhs, rhs);
+}
+
+bool smaller(const coord_t& lhs, const coord_t& rhs) {
+	return boost::geometry::math::smaller(lhs, rhs);
+}
+
 bool equals(const coord_t& lhs, const coord_t& rhs) {
-	return bg::equals(point_t{lhs,lhs}, point_t{rhs,rhs});
+	return boost::geometry::math::equals(lhs, rhs);
 }
 
 std::ostream& operator<<(std::ostream& os, const point_t& p) {
@@ -73,6 +85,10 @@ typedef bg::model::polygon<point_t, false, true> polygon_t;
 typedef bg::model::linestring<point_t> linestring_t;
 
 typedef typename polygon_t::ring_type::size_type psize_t;
+
+bool zeroDistance(const segment_t& seg, const point_t& p) {
+	return equals(bg::distance(seg, p), 0);
+}
 
 std::ostream& operator<<(std::ostream& os, const segment_t& seg) {
 	os << "{" << seg.first << "," << seg.second << "}";
@@ -107,7 +123,7 @@ Alignment get_alignment(const segment_t& seg, const point_t& pt){
 
 	if(equals(res, 0)) {
 		return ON;
-	} else	if(res > 0) {
+	} else	if(larger(res,0)) {
 		return LEFT;
 	} else {
 		return RIGHT;
@@ -223,7 +239,7 @@ std::vector<psize_t> find_minimum_y(const polygon_t& p) {
 	coord_t min = MAX_COORD;
 	auto& po = p.outer();
 	for(psize_t i = 0; i < p.outer().size() - 1; ++i) {
-		if(po[i].y_ < min) {
+		if(smaller(po[i].y_, min)) {
 			result.clear();
 			min = po[i].y_;
 			result.push_back(i);
@@ -239,7 +255,7 @@ std::vector<psize_t> find_maximum_y(const polygon_t& p) {
 	coord_t max = MIN_COORD;
 	auto& po = p.outer();
 	for(psize_t i = 0; i < p.outer().size() - 1; ++i) {
-		if(po[i].y_ > max) {
+		if(larger(po[i].y_, max)) {
 			result.clear();
 			max = po[i].y_;
 			result.push_back(i);
@@ -266,9 +282,9 @@ std::vector<TouchingPoint> findTouchingPoints(const polygon_t::ring_type& ringA,
 			psize_t nextJ = j+1;
 			if(ringA[i] == ringB[j]) {
 				touchers.push_back({TouchingPoint::VERTEX, i, j});
-			} else if (ringA[nextI] != ringB[j] && bg::intersects(segment_t(ringA[i],ringA[nextI]), ringB[j])) {
+			} else if (ringA[nextI] != ringB[j] && zeroDistance(segment_t(ringA[i],ringA[nextI]), ringB[j])) {
 				touchers.push_back({TouchingPoint::B_ON_A, nextI, j});
-			} else if (ringB[nextJ] != ringA[i] && bg::intersects(segment_t(ringB[j],ringB[nextJ]), ringA[i])) {
+			} else if (ringB[nextJ] != ringA[i] && zeroDistance(segment_t(ringB[j],ringB[nextJ]), ringA[i])) {
 				touchers.push_back({TouchingPoint::A_ON_B, i, nextJ});
 			}
 		}
@@ -356,11 +372,11 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 		} else if (touchers[i].type_ == TouchingPoint::B_ON_A) {
 			touchEdges.push_back({{vertexB, vertexA}, {vertexB, prevB}});
 			touchEdges.push_back({{vertexB, vertexA}, {vertexB, nextB}});
-			if(bg::intersects(vertexB, segment_t(vertexA, prevA))) {
+			if(zeroDistance(segment_t(vertexA, prevA), vertexB)) {
 				touchEdges.push_back({{vertexB, prevA}, {vertexB, prevB}});
 				touchEdges.push_back({{vertexB, prevA}, {vertexB, nextB}});
 			}
-			if(bg::intersects(vertexB, segment_t(vertexA, nextA))) {
+			if(zeroDistance(segment_t(vertexA, nextA), vertexB)) {
 				touchEdges.push_back({{vertexB, nextA}, {vertexB, prevB}});
 				touchEdges.push_back({{vertexB, nextA}, {vertexB, nextB}});
 			}
@@ -410,12 +426,12 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 				point_t normTrans = normalize(transEnd - transStart);
 
 				if(normEdge == normTrans) {
-					if(ds > df) {
+					if(larger(ds, df)) {
 						discarded = true;
 						break;
 					}
 				} else {
-					if(equals(df, ds) || df < ds) {
+					if(equals(df, ds) || smaller(df, ds)) {
 						discarded = true;
 						break;
 					}
@@ -443,7 +459,6 @@ TranslationVector trimVector(const polygon_t::ring_type& rA, const polygon_t::ri
 		projection.push_back(translated);
 		std::vector<point_t> intersections;
 		bg::intersection(rB, projection, intersections);
-
 		//find shortest intersection
 		coord_t len;
 		segment_t segi;
@@ -460,7 +475,7 @@ TranslationVector trimVector(const polygon_t::ring_type& rA, const polygon_t::ri
 				continue;
 			segi = segment_t(ptA,pti);
 			len = bg::length(segi);
-			if(len < shortest) {
+			if(smaller(len, shortest)) {
 				trimmed.vector_ = ptA - pti;
 				trimmed.edge_ = segi;
 				shortest = len;
@@ -496,15 +511,15 @@ TranslationVector trimVector(const polygon_t::ring_type& rA, const polygon_t::ri
 				continue;
 			segi = segment_t(ptB,pti);
 			len = bg::length(segi);
-			if(len < shortest) {
+			if(smaller(len, shortest)) {
 				trimmed.vector_ = pti - ptB;
 				trimmed.edge_ = segi;
 				shortest = len;
 			}
 		}
 	}
-
-	return trimmed;
+	std::cerr << "shortest trim: " << shortest << std::endl;
+ 	return trimmed;
 }
 
 
@@ -603,7 +618,7 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 		TranslationVector longest;
 		for(auto& tv : notDisconnectingTranslation) {
 			len = bg::length(segment_t{{0,0},tv.vector_});
-			if(len > maxLen) {
+			if(larger(len, maxLen)) {
 				maxLen = len;
 				longest = tv;
 			}
@@ -798,7 +813,7 @@ int main(int argc, char** argv) {
 	read_polygon(argv[2], pB);
 	assert(pA.outer().size() > 2);
 	assert(pB.outer().size() > 2);
-/*
+
   std::random_device rd;
   std::mt19937 mt(rd());
   std::uniform_real_distribution<double> dist(-1.0, 1.0);
@@ -839,7 +854,7 @@ int main(int argc, char** argv) {
 		rB.back() = rB.front();
 	}
 
-*/
+
 	write_svg<polygon_t>("start.svg", {pA, pB});
 	std::cout << bg::wkt(pA) << std::endl;
 	std::cout << bg::wkt(pB) << std::endl;
@@ -856,7 +871,7 @@ int main(int argc, char** argv) {
 		psize_t iRightMost = 0;
 		for(psize_t& ia : ptyaminI) {
 			const point_t& candidateA = pA.outer()[ia];
-			if(candidateA.x_ > maxX) {
+			if(larger(candidateA.x_, maxX)) {
 				maxX = candidateA.x_;
 				iRightMost = ia;
 			}
@@ -866,7 +881,7 @@ int main(int argc, char** argv) {
 		psize_t iLeftMost = 0;
 		for(psize_t& ib : ptybmaxI) {
 			const point_t& candidateB = pB.outer()[ib];
-			if(candidateB.x_ < minX) {
+			if(smaller(candidateB.x_, minX)) {
 				minX = candidateB.x_;
 				iLeftMost = ib;
 			}
