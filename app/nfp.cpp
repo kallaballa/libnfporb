@@ -413,21 +413,22 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 		} else if (touchers[i].type_ == TouchingPoint::B_ON_A) {
 			segment_t a1 = {vertexB, vertexA};
 			segment_t a2 = {vertexB, prevA};
-			segment_t a3 = {vertexB, nextA};
 			segment_t b1 = {vertexB, prevB};
 			segment_t b2 = {vertexB, nextB};
 
 			touchEdges.push_back({a1, b1});
 			touchEdges.push_back({a1, b2});
-			if(zeroDistance(segment_t(vertexA, prevA), vertexB)) {
+			//if(zeroDistance(segment_t(vertexA, prevA), vertexB)) {
 				touchEdges.push_back({a2, b1});
 				touchEdges.push_back({a2, b2});
 				write_svg<segment_t>("touchersB" + std::to_string(i) + ".svg", {a1,a2,b1,b2});
-			} else if(zeroDistance(segment_t(vertexA, nextA), vertexB)) {
+			//}
+			/*else if(zeroDistance(segment_t(vertexA, nextA), vertexB)) {
 				touchEdges.push_back({a3, b1});
 				touchEdges.push_back({a3, b2});
+				std::cout << "toucher2" << std::endl;
 				write_svg<segment_t>("touchersB" + std::to_string(i) + ".svg", {a1,a3,b1,b2});
-			}
+			}*/
 			potentialVectors.insert({{ vertexA.x_ - vertexB.x_, vertexA.y_ - vertexB.y_ }, {vertexB, vertexA}, true});
 		} else if (touchers[i].type_ == TouchingPoint::A_ON_B) {
 			//TODO testme
@@ -512,7 +513,7 @@ TranslationVector trimVector(const polygon_t::ring_type& rA, const polygon_t::ri
 		segment_t segi;
 		for(const auto& pti : intersections) {
 			//bg::intersection is inclusive so we have to exclude exact point intersections
-			bool cont = false;
+			/*bool cont = false;
 			for(const auto& ptB : rB) {
 				if(pti == ptB) {
 					cont = true;
@@ -520,7 +521,7 @@ TranslationVector trimVector(const polygon_t::ring_type& rA, const polygon_t::ri
 				}
 			}
 			if(cont)
-				continue;
+				continue;*/
 			segi = segment_t(ptA,pti);
 			len = bg::length(segi);
 			if(!equals(len,0) && smaller(len, shortest)) {
@@ -548,7 +549,7 @@ TranslationVector trimVector(const polygon_t::ring_type& rA, const polygon_t::ri
 		segment_t segi;
 		for(const auto& pti : intersections) {
 			//bg::intersection is inclusive so we have to exclude exact point intersections
-			bool cont = false;
+			/*bool cont = false;
 			for(const auto& ptA : rA) {
 				if(pti == ptA) {
 					cont = true;
@@ -556,7 +557,7 @@ TranslationVector trimVector(const polygon_t::ring_type& rA, const polygon_t::ri
 				}
 			}
 			if(cont)
-				continue;
+				continue;*/
 			segi = segment_t(ptB,pti);
 			len = bg::length(segi);
 			if(!equals(len,0) && smaller(len, shortest)) {
@@ -604,7 +605,7 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 					std::vector<point_t> intersectRes;
 					bg::intersection(pA, translated, intersectRes);
 
-					if(bg::intersects(pA, translated) && !bg::overlaps(pA, translated) && !bg::covered_by(translated, pA) && !bg::covered_by(pA, translated))  {
+					if(!intersectRes.empty() && !bg::overlaps(pA, translated) && !bg::covered_by(translated, pA) && !bg::covered_by(pA, translated))  {
 						last = tv;
 						return trimmed;
 					}
@@ -625,7 +626,10 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 						TranslationVector trimmed = trimVector(rA, rB, tv);
 						trans::translate_transformer<coord_t, 2, 2> translate(trimmed.vector_.x_, trimmed.vector_.y_);
 						boost::geometry::transform(rB, translated, translate);
-						if(bg::intersects(pA, translated) && !bg::overlaps(pA, translated) && !bg::covered_by(translated, pA) && !bg::covered_by(pA, translated))  {
+						std::vector<point_t> intersectRes;
+						bg::intersection(pA, translated, intersectRes);
+
+						if(!intersectRes.empty() && !bg::overlaps(pA, translated) && !bg::covered_by(translated, pA) && !bg::covered_by(pA, translated))  {
 							segment_t translatedEdge;
 							boost::geometry::transform(tv.edge_, translatedEdge, translate);
 							for(const auto& ve : viableEdges) {
@@ -901,8 +905,8 @@ int main(int argc, char** argv) {
 		}
 		rB.back() = rB.front();
 	}
-*/
 
+*/
 	write_svg<polygon_t>("start.svg", {pA, pB});
 	std::cout << bg::wkt(pA) << std::endl;
 	std::cout << bg::wkt(pB) << std::endl;
