@@ -8,4 +8,26 @@ This library implements the orbiting approach to generate the no-fit polygon: Gi
 
 Once the no-fit polygon has been generated it can be used to test for overlap be only checking if the reference point is inside the NFP (overlap) outside the NFP (no overlap) or exactly on the edge of the NFP (touch).
 
-Example:
+### Example:
+
+The polygons: 
+
+![Start of NFP](/images/start.png?raw=true)
+
+Orbiting:
+
+![State 1](/images/next0.png?raw=true)
+![State 2](/images/next1.png?raw=true)
+![State 3](/images/next2.png?raw=true)
+![State 4](/images/next3.png?raw=true)
+
+![State 5](/images/next4.png?raw=true)
+![State 6](/images/next5.png?raw=true)
+![State 7](/images/next6.png?raw=true)
+![State 8](/images/next7.png?raw=true)
+
+![State 9](/images/next8.png?raw=true)
+
+The resulting nfp is red:
+
+![nfp](/images/nfp.png?raw=true)
