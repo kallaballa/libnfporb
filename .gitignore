@@ -1,11 +1,14 @@
 *.svg
-app/*.dep
-app/*.o
+example/*.dep
+example/*.o
 src/*.dep
 src/*.o
-app/nfp
+example/nfp
 src/libnfp.so
 .cproject
 .project
 .settings/
 valgrind.log
+perf.data
+perf.data.old
+
