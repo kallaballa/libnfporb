@@ -22,6 +22,14 @@ namespace bm = boost::multiprecision;
 namespace bg = boost::geometry;
 namespace trans = boost::geometry::strategy::transform;
 
+#ifdef NFP_DEBUG
+#define DEBUG_VAL(x) std::cerr << x << std::endl;
+#define DEBUG_MSG(title, value) std::cerr << title << ":" << value << std::endl;
+#else
+#define DEBUG_VAL(x)
+#define DEBUG_MSG(title, value)
+#endif
+
 using std::string;
 
 typedef bm::number<bm::gmp_rational, bm::et_off> coord_t;
@@ -158,19 +166,21 @@ polygon_t nfpRingsToNfpPoly(const std::vector<polygon_t::ring_type>& nfp) {
 	return nfppoly;
 }
 
-template <typename Geometry>
-void write_svg(std::string const& filename,typename std::vector<Geometry> const& geometries) {
-   /* typedef typename boost::geometry::point_type<Geometry>::type point_type;
+void write_svg(std::string const& filename,const std::vector<segment_t>& segments) {
+#ifdef NFP_DEBUG
     std::ofstream svg(filename.c_str());
 
-    boost::geometry::svg_mapper<point_type> mapper(svg, 100, 100, "width=\"200mm\" height=\"200mm\" viewBox=\"-250 -250 500 500\"");
-    for(auto g : geometries) {
-    	mapper.add(g);
-    	mapper.map(g, "fill-opacity:0.5;fill:rgb(153,204,0);stroke:rgb(153,204,0);stroke-width:2");
-    }*/
+    boost::geometry::svg_mapper<pointf_t> mapper(svg, 100, 100, "width=\"200mm\" height=\"200mm\" viewBox=\"-250 -250 500 500\"");
+    for(const auto& seg : segments) {
+    	segmentf_t segf({toDouble(seg.first.x_), toDouble(seg.first.y_)}, {toDouble(seg.second.x_), toDouble(seg.second.y_)});
+    	mapper.add(segf);
+    	mapper.map(segf, "fill-opacity:0.5;fill:rgb(153,204,0);stroke:rgb(153,204,0);stroke-width:2");
+    }
+#endif
 }
 
 void write_svg(std::string const& filename,	const polygon_t& p, const polygon_t::ring_type& ring) {
+#ifdef NFP_DEBUG
 	std::ofstream svg(filename.c_str());
 
 	boost::geometry::svg_mapper<pointf_t> mapper(svg, 100, 100,	"width=\"200mm\" height=\"200mm\" viewBox=\"-250 -250 500 500\"");
@@ -181,9 +191,24 @@ void write_svg(std::string const& filename,	const polygon_t& p, const polygon_t:
 	mapper.map(pf, "fill-opacity:0.5;fill:rgb(153,204,0);stroke:rgb(153,204,0);stroke-width:2");
 	mapper.add(rf);
 	mapper.map(rf, "fill-opacity:0.5;fill:rgb(153,204,0);stroke:rgb(153,204,0);stroke-width:2");
+#endif
+}
+
+void write_svg(std::string const& filename,	typename std::vector<polygon_t> const& polygons) {
+#ifdef NFP_DEBUG
+	std::ofstream svg(filename.c_str());
+
+	boost::geometry::svg_mapper<pointf_t> mapper(svg, 100, 100,	"width=\"200mm\" height=\"200mm\" viewBox=\"-250 -250 500 500\"");
+	for (auto p : polygons) {
+		auto pf  = convert(p);
+		mapper.add(pf);
+		mapper.map(pf, "fill-opacity:0.5;fill:rgb(153,204,0);stroke:rgb(153,204,0);stroke-width:2");
+	}
+#endif
 }
 
 void write_svg(std::string const& filename,	typename std::vector<polygon_t> const& polygons, const std::vector<polygon_t::ring_type>& nfp) {
+#ifdef NFP_DEBUG
 	polygon_t nfppoly;
 	for (const auto& pt : nfp.front()) {
 		nfppoly.outer().push_back(pt);
@@ -218,6 +243,7 @@ void write_svg(std::string const& filename,	typename std::vector<polygon_t> cons
 			mapper.map(seg, "fill-opacity:0.5;fill:rgb(204,153,0);stroke:rgb(204,153,0);stroke-width:2");
 		}
 	}
+#endif
 }
 
 std::ostream& operator<<(std::ostream& os, const segment_t& seg) {
@@ -422,7 +448,7 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 			touchEdges.push_back({{a2.second, a2.first}, b1});
 			touchEdges.push_back({{a2.second, a2.first}, {b2.second, b2.first}});
 
-			write_svg<segment_t>("touchersV" + std::to_string(i) + ".svg", {a1,a2,b1,b2});
+			write_svg("touchersV" + std::to_string(i) + ".svg", {a1,a2,b1,b2});
 
 			//TODO test parallel edges for floating point stability
 			Alignment al;
@@ -465,7 +491,7 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 			touchEdges.push_back({a1, b2});
 			touchEdges.push_back({a2, b1});
 			touchEdges.push_back({a2, b2});
-			write_svg<segment_t>("touchersB" + std::to_string(i) + ".svg", {a1,a2,b1,b2});
+			write_svg("touchersB" + std::to_string(i) + ".svg", {a1,a2,b1,b2});
 
 			potentialVectors.insert({{ vertexA.x_ - vertexB.x_, vertexA.y_ - vertexB.y_ }, {vertexB, vertexA}, true});
 		} else if (touchers[i].type_ == TouchingPoint::A_ON_B) {
@@ -474,7 +500,7 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 			segment_t a2 = {vertexA, nextA};
 			segment_t b1 = {vertexA, vertexB};
 			segment_t b2 = {vertexA, prevB};
-			write_svg<segment_t>("touchersA" + std::to_string(i) + ".svg", {a1,a2,b1,b2});
+			write_svg("touchersA" + std::to_string(i) + ".svg", {a1,a2,b1,b2});
 
 			touchEdges.push_back({a1, b1});
 			touchEdges.push_back({a2, b1});
@@ -504,7 +530,7 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 
 				point_t normEdge = normalize(v.edge_.second - v.edge_.first);
 				point_t normTrans = normalize(transEnd - transStart);
-				std::cerr << v.vector_ << '\t' << normEdge << " == " << normTrans << " : " << sp.first << " " << sp.second << std::endl;
+
 				if(normEdge == normTrans) {
 					if(larger(ds, df)) {
 						discarded = true;
@@ -602,7 +628,7 @@ TranslationVector trimVector(const polygon_t::ring_type& rA, const polygon_t::ri
 }
 
 
-TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon_t::ring_type& rA,	const polygon_t::ring_type& rB, std::set<TranslationVector> tvs, TranslationVector& last) {
+TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon_t::ring_type& rA,	const polygon_t::ring_type& rB, const std::set<TranslationVector>& tvs, TranslationVector& last) {
 	if(last.vector_ != INVALID_POINT) {
 		point_t later;
 		if(last.vector_ == (last.edge_.second - last.edge_.first)) {
@@ -839,7 +865,6 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 	rB = std::move(rifsB);
 
 	write_svg("ifs.svg", pA, rB);
-	std::cerr << bg::intersects(rA, rB) << std::endl;
 	bool startAvailable = true;
 	psize_t cnt = 0;
 	point_t referenceStart = rB.front();
@@ -851,16 +876,13 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 		//use first point of rB as reference
 		nfp.back().push_back(rB.front());
 
-		if(cnt == 1) {
-			std::cerr << "bp" << std::endl;
-		}
 		std::vector<TouchingPoint> touchers = findTouchingPoints(rA, rB);
 		assert(!touchers.empty());
 		std::set<TranslationVector> transVectors = findFeasibleTranslationVectors(rA, rB, touchers);
 
-		std::cerr << "collected vectors: " << transVectors.size() << std::endl;
+		DEBUG_MSG("collected vectors", transVectors.size());
 		for(auto pt : transVectors) {
-			std::cerr << pt << std::endl;
+			DEBUG_VAL(pt);
 		}
 
 		if(transVectors.empty()) {
@@ -876,9 +898,10 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 		if(next.vector_ == INVALID_POINT)
 			return NO_TRANSLATION;
 
-		std::cerr << "next: " << next << std::endl;
+		DEBUG_MSG("next", next);
+
 		TranslationVector trimmed = trimVector(rA, rB, next);
-		std::cerr << "trimmed: " << trimmed << std::endl;
+		DEBUG_MSG("trimmed", trimmed);
 
 		polygon_t::ring_type nextRB;
 		boost::geometry::transform(rB, nextRB, trans::translate_transformer<coord_t, 2, 2>(trimmed.vector_.x_, trimmed.vector_.y_));
@@ -937,14 +960,13 @@ int main(int argc, char** argv) {
 	}
 */
 
-	write_svg<polygon_t>("start.svg", {pA, pB});
-	std::cout << bg::wkt(pA) << std::endl;
-	std::cout << bg::wkt(pB) << std::endl;
+	write_svg("start.svg", {pA, pB});
+	DEBUG_VAL(bg::wkt(pA))
+	DEBUG_VAL(bg::wkt(pB));
 
 	//prevent double vertex connections at start because we might come back the same way we go which would end the nfp prematurely
 	std::vector<psize_t> ptyaminI = find_minimum_y(pA);
 	std::vector<psize_t> ptybmaxI = find_maximum_y(pB);
-	std::cerr << pA.outer().size() << ":" << ptyaminI.size() << ":" << ptybmaxI.size() << std::endl;
 
 	point_t pAstart = pA.outer()[ptyaminI.front()];
 	point_t pBstart = pB.outer()[ptybmaxI.front()];
@@ -980,13 +1002,13 @@ int main(int argc, char** argv) {
 	nfp.push_back({});
 	point_t transB = {pAstart - pBstart};
 	assert(slide(pA, pA.outer(), pB.outer(), nfp, transB) == LOOP);
-	std::cerr << "##### outer #####" << std::endl;
+	DEBUG_VAL("##### outer #####");
 	point_t startTrans;
   while(true) {
   	SearchStartResult res = searchStartTranslation(pA.outer(), pB.outer(), nfp, false, startTrans);
   	if(res == FOUND) {
 			nfp.push_back({});
-			std::cerr << "##### interlock start #####" << std::endl;
+			DEBUG_VAL("##### interlock start #####")
 			SlideResult sres = slide(pA, pA.outer(), pB.outer(), nfp, startTrans);
 			if(sres != LOOP) {
 				if(sres == NO_TRANSLATION) {
@@ -995,7 +1017,7 @@ int main(int argc, char** argv) {
 					nfp.back().push_back(pB.outer().front());
 				}
 			}
-			std::cerr << "##### interlock end #####" << std::endl;
+			DEBUG_VAL("##### interlock end #####");
   	} else if(res == FIT) {
   		point_t reference = pB.outer().front();
   		point_t translated;
@@ -1013,9 +1035,9 @@ int main(int argc, char** argv) {
 			SearchStartResult res = searchStartTranslation(rA, pB.outer(), nfp, true, startTrans);
 			if(res == FOUND) {
 				nfp.push_back({});
-				std::cerr << "##### hole start #####" << std::endl;
+				DEBUG_VAL("##### hole start #####");
 				slide(pA, rA, pB.outer(), nfp, startTrans);
-				std::cerr << "##### hole end #####" << std::endl;
+				DEBUG_VAL("##### hole end #####");
 			} else if(res == FIT) {
 	  		point_t reference = pB.outer().front();
 	  		point_t translated;

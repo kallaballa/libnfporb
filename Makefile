@@ -53,7 +53,7 @@ info: CXXFLAGS += -g3 -O0
 info: LDFLAGS += -Wl,--export-dynamic -rdynamic
 info: dirs
 
-debug: CXXFLAGS += -g3 -O0 -rdynamic
+debug: CXXFLAGS += -g3 -O0 -rdynamic -DNFP_DEBUG
 debug: LDFLAGS += -Wl,--export-dynamic -rdynamic
 debug: dirs
 
