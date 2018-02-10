@@ -6,6 +6,7 @@
 #include <vector>
 #include <set>
 #include <random>
+#include <exception>
 
 #include <boost/multiprecision/cpp_bin_float.hpp>
 #include <boost/multiprecision/gmp.hpp>
@@ -74,6 +75,8 @@ public:
       return  boost::geometry::math::smaller(this->x_, other.x_) || (equals(this->x_, other.x_) && boost::geometry::math::smaller(this->y_, other.y_));
   }
 };
+
+typedef std::vector<std::vector<point_t>> nfp_t;
 
 inline bool larger(const coord_t& lhs, const coord_t& rhs) {
 	return lhs > rhs;
@@ -151,7 +154,7 @@ polygonf_t convert(polygon_t p) {
 	return pf;
 }
 
-polygon_t nfpRingsToNfpPoly(const std::vector<polygon_t::ring_type>& nfp) {
+polygon_t nfpRingsToNfpPoly(const nfp_t& nfp) {
 	polygon_t nfppoly;
 	for (const auto& pt : nfp.front()) {
 		nfppoly.outer().push_back(pt);
@@ -208,7 +211,7 @@ void write_svg(std::string const& filename,	typename std::vector<polygon_t> cons
 #endif
 }
 
-void write_svg(std::string const& filename,	typename std::vector<polygon_t> const& polygons, const std::vector<polygon_t::ring_type>& nfp) {
+void write_svg(std::string const& filename,	typename std::vector<polygon_t> const& polygons, const nfp_t& nfp) {
 #ifdef NFP_DEBUG
 	polygon_t nfppoly;
 	for (const auto& pt : nfp.front()) {
@@ -639,7 +642,9 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 		}
 
 		psize_t laterI = find_point(rA, later);
-		assert(laterI != std::numeric_limits<psize_t>::max());
+		if(laterI == std::numeric_limits<psize_t>::max()) {
+			throw std::runtime_error("Internal error: can't find later point of last edge");
+		}
 		point_t previous = later;
 		point_t next;
 		std::vector<segment_t> viableEdges;
@@ -704,7 +709,7 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 			}
 		}
 
-		assert(false);
+		throw std::runtime_error("Internal error: Unable to select next vector");
 		return TranslationVector();
 	} else {
 		std::vector<TranslationVector> notDisconnectingTranslation;
@@ -739,7 +744,7 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 	}
 }
 
-bool inNfp(const point_t& pt, std::vector<polygon_t::ring_type> nfp) {
+bool inNfp(const point_t& pt, const nfp_t& nfp) {
 	for(const auto& r : nfp) {
 		for(const auto& ptN: r) {
 			if(ptN == pt)
@@ -756,7 +761,7 @@ enum SearchStartResult {
 	NOT_FOUND
 };
 
-SearchStartResult searchStartTranslation(polygon_t::ring_type& rA, const polygon_t::ring_type& rB, const std::vector<polygon_t::ring_type>& nfp,const bool& inside, point_t& result) {
+SearchStartResult searchStartTranslation(polygon_t::ring_type& rA, const polygon_t::ring_type& rB, const nfp_t& nfp,const bool& inside, point_t& result) {
 	for(psize_t i = 0; i < rA.size() -1; i++) {
 		auto& ptA = rA[i];
 
@@ -860,7 +865,7 @@ enum SlideResult {
 	NO_TRANSLATION
 };
 
-SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type& rB, std::vector<polygon_t::ring_type>& nfp, const point_t& transB) {
+SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type& rB, nfp_t& nfp, const point_t& transB) {
 	polygon_t::ring_type rifsB;
 	boost::geometry::transform(rB, rifsB, trans::translate_transformer<coord_t, 2, 2>(transB.x_, transB.y_));
 	rB = std::move(rifsB);
@@ -878,7 +883,9 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 		nfp.back().push_back(rB.front());
 
 		std::vector<TouchingPoint> touchers = findTouchingPoints(rA, rB);
-		assert(!touchers.empty());
+		if(touchers.empty()) {
+			throw std::runtime_error("Internal error: No touching points found");
+		}
 		std::set<TranslationVector> transVectors = findFeasibleTranslationVectors(rA, rB, touchers);
 
 		DEBUG_MSG("collected vectors", transVectors.size());
@@ -917,49 +924,12 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 	return LOOP;
 }
 
-int main(int argc, char** argv) {
-	//TODO: remove superfluous points
-	polygon_t pA;
-	polygon_t pB;
-	std::vector<polygon_t::ring_type> nfp;
-
-	read_polygon(argv[1], pA);
-	read_polygon(argv[2], pB);
-	assert(pA.outer().size() > 2);
-	assert(pB.outer().size() > 2);
-
-  std::random_device rd;
-  std::mt19937 mt(rd());
-  std::uniform_real_distribution<double> dist(-1.0, 1.0);
-
-	for(auto& ptA : pA.outer()) {
-		ptA.x_ += dist(mt);
-		ptA.y_ += dist(mt);
-	}
-	pA.outer().back() = pA.outer().front();
-
-	for(auto& ptB : pB.outer()) {
-		ptB.x_ += dist(mt);
-		ptB.y_ += dist(mt);
-	}
-	pB.outer().back() = pB.outer().front();
-
-	for(auto& rA : pA.inners()) {
-		for(auto& ptA : rA) {
-			ptA.x_ += dist(mt);
-			ptA.y_ += dist(mt);
-		}
-		rA.back() = rA.front();
+nfp_t generateNFP(polygon_t& pA, polygon_t& pB) {
+	if(pA.outer().size() < 3 || pB.outer().size() < 3) {
+		throw std::runtime_error("Input polygons must have at least 3 points");
 	}
 
-	for(auto& rB : pB.inners()) {
-		for(auto& ptB : rB) {
-			ptB.x_ += dist(mt);
-			ptB.y_ += dist(mt);
-		}
-		rB.back() = rB.front();
-	}
-
+	nfp_t nfp;
 
 	write_svg("start.svg", {pA, pB});
 	DEBUG_VAL(bg::wkt(pA))
@@ -1002,7 +972,9 @@ int main(int argc, char** argv) {
 
 	nfp.push_back({});
 	point_t transB = {pAstart - pBstart};
-	assert(slide(pA, pA.outer(), pB.outer(), nfp, transB) == LOOP);
+	if(slide(pA, pA.outer(), pB.outer(), nfp, transB) != LOOP) {
+		throw std::runtime_error("Unable to complete outer nfp loop");
+	}
 	DEBUG_VAL("##### outer #####");
 	point_t startTrans;
   while(true) {
@@ -1053,6 +1025,50 @@ int main(int argc, char** argv) {
   }
 
   write_svg("nfp.svg", {pA,pB}, nfp);
+  return nfp;
+}
+
+int main(int argc, char** argv) {
+	polygon_t pA;
+	polygon_t pB;
+
+	read_polygon(argv[1], pA);
+	read_polygon(argv[2], pB);
+
+	/*
+  std::random_device rd;
+  std::mt19937 mt(rd());
+  std::uniform_real_distribution<double> dist(-1.0, 1.0);
+
+	for(auto& ptA : pA.outer()) {
+		ptA.x_ += dist(mt);
+		ptA.y_ += dist(mt);
+	}
+	pA.outer().back() = pA.outer().front();
+
+	for(auto& ptB : pB.outer()) {
+		ptB.x_ += dist(mt);
+		ptB.y_ += dist(mt);
+	}
+	pB.outer().back() = pB.outer().front();
+
+	for(auto& rA : pA.inners()) {
+		for(auto& ptA : rA) {
+			ptA.x_ += dist(mt);
+			ptA.y_ += dist(mt);
+		}
+		rA.back() = rA.front();
+	}
+
+	for(auto& rB : pB.inners()) {
+		for(auto& ptB : rB) {
+			ptB.x_ += dist(mt);
+			ptB.y_ += dist(mt);
+		}
+		rB.back() = rB.front();
+	}
+*/
+	nfp_t nfp = generateNFP(pA, pB);
 
 	return 0;
 }
