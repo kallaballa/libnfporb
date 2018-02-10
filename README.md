@@ -1,5 +1,5 @@
 # libnfp
-Implementation of a robust no-fit polygon generation in a library
+Implementation of a robust no-fit polygon generation in a C++ library
 
 ## Description
 
