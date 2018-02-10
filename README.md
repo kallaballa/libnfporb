@@ -40,7 +40,7 @@ Polygons can have concavities, holes or might fit perfectly:
 
 ## The approach
 The approch of this library is highly inspired by the scientific paper [Complete and robust no-fit polygon generation
-for the irregular stock cutting problem](https://pdfs.semanticscholar.org/e698/0dd78306ba7d5bb349d20c6d8f2e0aa61062.pdf) and by [Svgnest](https://svgnest.com)
+for the irregular stock cutting problem](https://pdfs.semanticscholar.org/e698/0dd78306ba7d5bb349d20c6d8f2e0aa61062.pdf) and by [Svgnest](http://svgnest.com)
 
 Note that is wasn't completely possible to implement it as suggested in the paper because it had several shortcomings that prevent complete NFP generation on some of my test cases. Especially the termination criteria (reference point returns to first point of NFP) proved to be wrong (see: test-case rect). Also tracking of used edges can't be performed as suggested in the paper since there might be situations where no edge of a is traversed (see: test-case doublecon).
 
