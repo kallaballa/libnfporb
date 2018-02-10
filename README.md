@@ -10,6 +10,8 @@ Once the no-fit polygon has been generated it can be used to test for overlap be
 
 ### Example:
 
+The polygons: 
+
 ![Start of NFP](/images/start.png?raw=true)
 
 Orbiting:
