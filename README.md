@@ -28,7 +28,7 @@ Orbiting:
 
 ![State 9](/images/next8.png?raw=true)
 
-The resulting nfp is red:
+The resulting NFP is red:
 
 ![nfp](/images/nfp.png?raw=true)
 
