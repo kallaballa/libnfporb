@@ -32,7 +32,8 @@ namespace trans = boost::geometry::strategy::transform;
 
 using std::string;
 
-typedef bm::number<bm::gmp_rational, bm::et_off> coord_t;
+typedef bm::number<bm::gmp_rational, bm::et_off> rational_t;
+typedef rational_t coord_t;
 
 const coord_t MAX_COORD = 999999999999999999;
 const coord_t MIN_COORD = std::numeric_limits<coord_t>::min();
@@ -86,9 +87,10 @@ bool equals(const coord_t& lhs, const coord_t& rhs) {
 	return lhs == rhs;
 }
 
-double toDouble(const coord_t& c) {
+inline double toDouble(const rational_t& c) {
 	return bm::numerator(c).convert_to<double>() / bm::denominator(c).convert_to<double>();
 }
+
 std::ostream& operator<<(std::ostream& os, const point_t& p) {
 	os << "{" << toDouble(p.x_) << "," << toDouble(p.y_) << "}";
 	return os;
@@ -121,7 +123,6 @@ length(segment_t const& seg)
 }
 }}
 
-
 typedef bg::model::polygon<point_t, false, true> polygon_t;
 typedef bg::model::linestring<point_t> linestring_t;
 
@@ -134,7 +135,7 @@ typedef bg::model::polygon<pointf_t, false, true> polygonf_t;
 polygonf_t::ring_type convert(const polygon_t::ring_type& r) {
 	polygonf_t::ring_type rf;
 	for(const auto& pt : r) {
-		rf.push_back(pointf_t(pt.x_.convert_to<double>(), pt.y_.convert_to<double>()));
+		rf.push_back(pointf_t(toDouble(pt.x_), toDouble(pt.y_)));
 	}
 	return rf;
 }
@@ -926,7 +927,7 @@ int main(int argc, char** argv) {
 	read_polygon(argv[2], pB);
 	assert(pA.outer().size() > 2);
 	assert(pB.outer().size() > 2);
-/*
+
   std::random_device rd;
   std::mt19937 mt(rd());
   std::uniform_real_distribution<double> dist(-1.0, 1.0);
@@ -958,7 +959,7 @@ int main(int argc, char** argv) {
 		}
 		rB.back() = rB.front();
 	}
-*/
+
 
 	write_svg("start.svg", {pA, pB});
 	DEBUG_VAL(bg::wkt(pA))
