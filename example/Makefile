@@ -1,6 +1,6 @@
-TARGET := libnfp.so
+TARGET := nfp
 
-SRCS    := libnfp.cpp
+SRCS    := nfp.cpp
 
 #precompiled headers
 HEADERS := 
@@ -19,7 +19,7 @@ profile: ${TARGET}
 hardcore: ${TARGET}
 
 ${TARGET}: ${OBJS}
-	${CXX} ${LDFLAGS} -shared -o $@ $^ ${LIBS}
+	${CXX} ${LDFLAGS} -o $@ $^ ${LIBS}
 
 ${OBJS}: %.o: %.cpp %.dep ${GCH}
 	${CXX} ${CXXFLAGS} -o $@ -c $<
