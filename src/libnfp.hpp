@@ -8,7 +8,6 @@
 #include <streambuf>
 #include <vector>
 #include <set>
-#include <random>
 #include <exception>
 
 #include <boost/multiprecision/gmp.hpp>
@@ -930,6 +929,13 @@ nfp_t generateNFP(polygon_t& pA, polygon_t& pB) {
 	if(pA.outer().size() < 3 || pB.outer().size() < 3) {
 		throw std::runtime_error("Input polygons must have at least 3 points");
 	}
+
+	std::string reason;
+	if(!bg::is_valid(pA, reason))
+		throw std::runtime_error("Polygon A is invalid: " + reason);
+
+	if(!bg::is_valid(pB, reason))
+		throw std::runtime_error("Polygon B is invalid: " + reason);
 
 	nfp_t nfp;
 
