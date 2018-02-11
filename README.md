@@ -61,6 +61,7 @@ The library has two dependencies: [Boost Geometry](http://www.boost.org/doc/libs
 #include "../src/libnfp.hpp"
 
 int main(int argc, char** argv) {
+  using namespace libnfp;
   polygon_t pA;
   polygon_t pB;
   //read polygons from wkt files
