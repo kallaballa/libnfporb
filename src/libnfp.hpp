@@ -172,7 +172,6 @@ polygon_t nfpRingsToNfpPoly(const nfp_t& nfp) {
 }
 
 void write_svg(std::string const& filename,const std::vector<segment_t>& segments) {
-#ifdef NFP_DEBUG
     std::ofstream svg(filename.c_str());
 
     boost::geometry::svg_mapper<pointf_t> mapper(svg, 100, 100, "width=\"200mm\" height=\"200mm\" viewBox=\"-250 -250 500 500\"");
@@ -181,11 +180,9 @@ void write_svg(std::string const& filename,const std::vector<segment_t>& segment
     	mapper.add(segf);
     	mapper.map(segf, "fill-opacity:0.5;fill:rgb(153,204,0);stroke:rgb(153,204,0);stroke-width:2");
     }
-#endif
 }
 
 void write_svg(std::string const& filename,	const polygon_t& p, const polygon_t::ring_type& ring) {
-#ifdef NFP_DEBUG
 	std::ofstream svg(filename.c_str());
 
 	boost::geometry::svg_mapper<pointf_t> mapper(svg, 100, 100,	"width=\"200mm\" height=\"200mm\" viewBox=\"-250 -250 500 500\"");
@@ -196,11 +193,9 @@ void write_svg(std::string const& filename,	const polygon_t& p, const polygon_t:
 	mapper.map(pf, "fill-opacity:0.5;fill:rgb(153,204,0);stroke:rgb(153,204,0);stroke-width:2");
 	mapper.add(rf);
 	mapper.map(rf, "fill-opacity:0.5;fill:rgb(153,204,0);stroke:rgb(153,204,0);stroke-width:2");
-#endif
 }
 
 void write_svg(std::string const& filename,	typename std::vector<polygon_t> const& polygons) {
-#ifdef NFP_DEBUG
 	std::ofstream svg(filename.c_str());
 
 	boost::geometry::svg_mapper<pointf_t> mapper(svg, 100, 100,	"width=\"200mm\" height=\"200mm\" viewBox=\"-250 -250 500 500\"");
@@ -209,11 +204,9 @@ void write_svg(std::string const& filename,	typename std::vector<polygon_t> cons
 		mapper.add(pf);
 		mapper.map(pf, "fill-opacity:0.5;fill:rgb(153,204,0);stroke:rgb(153,204,0);stroke-width:2");
 	}
-#endif
 }
 
 void write_svg(std::string const& filename,	typename std::vector<polygon_t> const& polygons, const nfp_t& nfp) {
-#ifdef NFP_DEBUG
 	polygon_t nfppoly;
 	for (const auto& pt : nfp.front()) {
 		nfppoly.outer().push_back(pt);
@@ -248,7 +241,6 @@ void write_svg(std::string const& filename,	typename std::vector<polygon_t> cons
 			mapper.map(seg, "fill-opacity:0.5;fill:rgb(204,153,0);stroke:rgb(204,153,0);stroke-width:2");
 		}
 	}
-#endif
 }
 
 std::ostream& operator<<(std::ostream& os, const segment_t& seg) {
@@ -335,7 +327,7 @@ std::ostream& operator<<(std::ostream& os, const TranslationVector& tv) {
 }
 
 
-void read_polygon(const string& filename, polygon_t& p) {
+void read_wkt_polygon(const string& filename, polygon_t& p) {
 	std::ifstream t(filename);
 
 	std::string str;
@@ -452,8 +444,9 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 			touchEdges.push_back({a1, {b2.second, b2.first}});
 			touchEdges.push_back({{a2.second, a2.first}, b1});
 			touchEdges.push_back({{a2.second, a2.first}, {b2.second, b2.first}});
-
+#ifdef NFP_DEBUG
 			write_svg("touchersV" + std::to_string(i) + ".svg", {a1,a2,b1,b2});
+#endif
 
 			//TODO test parallel edges for floating point stability
 			Alignment al;
@@ -496,8 +489,9 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 			touchEdges.push_back({a1, b2});
 			touchEdges.push_back({a2, b1});
 			touchEdges.push_back({a2, b2});
+#ifdef NFP_DEBUG
 			write_svg("touchersB" + std::to_string(i) + ".svg", {a1,a2,b1,b2});
-
+#endif
 			potentialVectors.insert({{ vertexA.x_ - vertexB.x_, vertexA.y_ - vertexB.y_ }, {vertexB, vertexA}, true});
 		} else if (touchers[i].type_ == TouchingPoint::A_ON_B) {
 			//TODO testme
@@ -505,8 +499,9 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 			segment_t a2 = {vertexA, nextA};
 			segment_t b1 = {vertexA, vertexB};
 			segment_t b2 = {vertexA, prevB};
+#ifdef NFP_DEBUG
 			write_svg("touchersA" + std::to_string(i) + ".svg", {a1,a2,b1,b2});
-
+#endif
 			touchEdges.push_back({a1, b1});
 			touchEdges.push_back({a2, b1});
 			touchEdges.push_back({a1, b2});
@@ -871,7 +866,10 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 	boost::geometry::transform(rB, rifsB, trans::translate_transformer<coord_t, 2, 2>(transB.x_, transB.y_));
 	rB = std::move(rifsB);
 
+#ifdef NFP_DEBUG
 	write_svg("ifs.svg", pA, rB);
+#endif
+
 	bool startAvailable = true;
 	psize_t cnt = 0;
 	point_t referenceStart = rB.front();
@@ -916,7 +914,10 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 		boost::geometry::transform(rB, nextRB, trans::translate_transformer<coord_t, 2, 2>(trimmed.vector_.x_, trimmed.vector_.y_));
 		rB = std::move(nextRB);
 
+#ifdef NFP_DEBUG
 		write_svg("next" + std::to_string(cnt) + ".svg", pA,rB);
+#endif
+
 		++cnt;
 		if(referenceStart == rB.front()) {
 			startAvailable = false;
@@ -939,7 +940,10 @@ nfp_t generateNFP(polygon_t& pA, polygon_t& pB) {
 
 	nfp_t nfp;
 
+#ifdef NFP_DEBUG
 	write_svg("start.svg", {pA, pB});
+#endif
+
 	DEBUG_VAL(bg::wkt(pA))
 	DEBUG_VAL(bg::wkt(pB));
 
@@ -1032,7 +1036,10 @@ nfp_t generateNFP(polygon_t& pA, polygon_t& pB) {
 		}
   }
 
+#ifdef NFP_DEBUG
   write_svg("nfp.svg", {pA,pB}, nfp);
+#endif
+
   return nfp;
 }
 

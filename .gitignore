@@ -1,9 +1,10 @@
 *.svg
-example/*.dep
-example/*.o
+examples/*.dep
+examples/*.o
 src/*.dep
 src/*.o
-example/nfp
+examples/nfp
+examples/fuzz
 src/libnfp.so
 .cproject
 .project

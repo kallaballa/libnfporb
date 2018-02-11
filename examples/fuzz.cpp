@@ -5,10 +5,10 @@ int main(int argc, char** argv) {
 	polygon_t pA;
 	polygon_t pB;
 
-	read_polygon(argv[1], pA);
-	read_polygon(argv[2], pB);
+	read_wkt_polygon(argv[1], pA);
+	read_wkt_polygon(argv[2], pB);
 
-
+/*
   std::random_device rd;
   std::mt19937 mt(rd());
   std::uniform_real_distribution<double> dist(-1.0, 1.0);
@@ -39,10 +39,10 @@ int main(int argc, char** argv) {
 			ptB.y_ += dist(mt);
 		}
 		rB.back() = rB.front();
-	}
+	}*/
 
 	nfp_t nfp = generateNFP(pA, pB);
-
+	write_svg("nfp.svg",{pA,pB},nfp);
 	return 0;
 }
 
