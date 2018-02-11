@@ -51,7 +51,7 @@ Note that is wasn't completely possible to implement it as suggested in the pape
 At the moment the library is using infinite precision to prevent problems with decimals and floating point. Because of this it is rather slow. One of the next steps is going to be implementing floating point support. 
 
 ## Build
-The library has two dependencies: [Boost Geometry](http://www.boost.org/doc/libs/1_65_1/libs/geometry/doc/html/index.html) and [libgmp](https://gmplib.org). You need to install those first before building. Note that building is only required for the example. The library itself is header-only.
+The library has two dependencies: [Boost Geometry](http://www.boost.org/doc/libs/1_65_1/libs/geometry/doc/html/index.html) and [libgmp](https://gmplib.org). You need to install those first before building. Note that building is only required for the examples. The library itself is header-only.
 
     git clone https://github.com/kallaballa/libnfp.git
     cd libnfp
