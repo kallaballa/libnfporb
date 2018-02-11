@@ -45,3 +45,11 @@ for the irregular stock cutting problem](https://pdfs.semanticscholar.org/e698/0
 Note that is wasn't completely possible to implement it as suggested in the paper because it had several shortcomings that prevent complete NFP generation on some of my test cases. Especially the termination criteria (reference point returns to first point of NFP) proved to be wrong (see: test-case rect). Also tracking of used edges can't be performed as suggested in the paper since there might be situations where no edge of A is traversed (see: test-case doublecon).
 
 At the moment the library is using infinite precision to prevent problems with decimals and floating point. Because of this it is rather slow. One of the next steps is going to be implementing floating point support. 
+
+## Build
+The library has two dependencies: [Boost Geometry](http://www.boost.org/doc/libs/1_65_1/libs/geometry/doc/html/index.html) and [libgmp](https://gmplib.org). You need to install those first before building.
+
+    git clone https://github.com/kallaballa/libnfp.git
+    cd libnfp
+    make
+    sudo make install
