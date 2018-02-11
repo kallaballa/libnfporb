@@ -2,6 +2,7 @@
 #include <random>
 
 int main(int argc, char** argv) {
+  using namespace libnfp;
 	polygon_t pA;
 	polygon_t pB;
 

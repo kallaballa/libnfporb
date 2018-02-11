@@ -24,6 +24,7 @@ namespace bm = boost::multiprecision;
 namespace bg = boost::geometry;
 namespace trans = boost::geometry::strategy::transform;
 
+namespace libnfp {
 #ifdef NFP_DEBUG
 #define DEBUG_VAL(x) std::cerr << x << std::endl;
 #define DEBUG_MSG(title, value) std::cerr << title << ":" << value << std::endl;
@@ -100,7 +101,6 @@ std::ostream& operator<<(std::ostream& os, const point_t& p) {
 	return os;
 }
 const point_t INVALID_POINT = {MAX_COORD, MAX_COORD};
-BOOST_GEOMETRY_REGISTER_POINT_2D(point_t, coord_t, cs::cartesian, x_, y_)
 
 typedef bg::model::segment<point_t> segment_t;
 
@@ -111,22 +111,25 @@ inline double c_sqrt(const coord_t& p) {
 inline double c_acos(const coord_t& p) {
 	return acos(toDouble(p));
 }
+}
+BOOST_GEOMETRY_REGISTER_POINT_2D(libnfp::point_t, libnfp::coord_t, cs::cartesian, x_, y_)
 
 namespace boost {
 
 namespace geometry {
 template<>
-inline coord_t
-length(segment_t const& seg)
+inline libnfp::coord_t
+length(libnfp::segment_t const& seg)
 {
-	coord_t x = abs(seg.first.x_ - seg.second.x_);
-	coord_t y = abs(seg.first.y_ - seg.second.y_);
-	coord_t p = x*x + y*y;
+	libnfp::coord_t x = abs(seg.first.x_ - seg.second.x_);
+	libnfp::coord_t y = abs(seg.first.y_ - seg.second.y_);
+	libnfp::coord_t p = x*x + y*y;
 
-	return c_sqrt(p);
+	return libnfp::c_sqrt(p);
 }
 }}
 
+namespace libnfp {
 typedef bg::model::polygon<point_t, false, true> polygon_t;
 typedef bg::model::linestring<point_t> linestring_t;
 
@@ -1042,5 +1045,5 @@ nfp_t generateNFP(polygon_t& pA, polygon_t& pB) {
 
   return nfp;
 }
-
+}
 #endif
