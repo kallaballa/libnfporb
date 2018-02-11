@@ -71,7 +71,7 @@ int main(int argc, char** argv) {
   //generate NFP
   nfp_t nfp = generateNFP(pA, pB);
   
-  //write an svg containing pA, pB and NFP
+  //write a svg containing pA, pB and NFP
   write_svg("nfp.svg",{pA,pB},nfp);
   return 0;
 }
