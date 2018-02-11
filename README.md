@@ -38,7 +38,7 @@ Polygons can have concavities, holes or might fit perfectly:
 ![hole](/images/hole.png?raw=true)
 ![jigsaw](/images/jigsaw.png?raw=true)
 
-## The approach
+## The Approach
 The approch of this library is highly inspired by the scientific paper [Complete and robust no-fit polygon generation
 for the irregular stock cutting problem](https://pdfs.semanticscholar.org/e698/0dd78306ba7d5bb349d20c6d8f2e0aa61062.pdf) and by [Svgnest](http://svgnest.com)
 
