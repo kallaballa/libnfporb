@@ -32,10 +32,11 @@ The resulting NFP is red:
 
 ![nfp](/images/nfp.png?raw=true)
 
-Polygons can have concavities, holes or might fit perfectly:
+Polygons can have concavities, holes, interlocks or might fit perfectly:
 
 ![concavities](/images/concavities.png?raw=true)
 ![hole](/images/hole.png?raw=true)
+![interlock](/images/interlock.png?raw=true)
 ![jigsaw](/images/jigsaw.png?raw=true)
 
 ## The Approach
