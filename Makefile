@@ -36,7 +36,7 @@ endif
 UNAME_S := $(shell uname -s)
 
 ifeq ($(UNAME_S), Darwin)
- LDFLAGS += -L/opt/X11/lib/
+ LDFLAGS := -L/opt/X11/lib/ -L/usr/local/lib
 else
  CXXFLAGS += -march=native
 endif
