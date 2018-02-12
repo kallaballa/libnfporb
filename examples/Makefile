@@ -12,6 +12,7 @@ DEPS1    := ${SRCS1:.cpp=.dep}
 OBJS2    := ${SRCS2:.cpp=.o}
 DEPS2    := ${SRCS2:.cpp=.dep}
 
+OBJS	:= ${OBJS1} ${OBJS2}
 
 CXXFLAGS += -fpic -I.
 LDFLAGS += 
@@ -56,7 +57,7 @@ uninstall:
 	rm ${DESTDIR}/${PREFIX}/${TARGET}
 
 clean:
-	rm -f *~ ${DEPS} ${OBJS} ${CUO} ${GCH} ${TARGET} 
+	rm -f *~ ${DEPS} ${OBJS} ${CUO} ${GCH} ${TARGET1} ${TARGET2}
 
 distclean: clean
 
