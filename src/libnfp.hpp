@@ -115,7 +115,6 @@ inline double c_acos(const coord_t& p) {
 BOOST_GEOMETRY_REGISTER_POINT_2D(libnfp::point_t, libnfp::coord_t, cs::cartesian, x_, y_)
 
 namespace boost {
-
 namespace geometry {
 template<>
 inline libnfp::coord_t
@@ -480,7 +479,7 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 			} else if(al == RIGHT) {
 				potentialVectors.insert({b1.first - b1.second, b1, false});
 			} else {
-				potentialVectors.insert({a2.second - a2.first, a2, true});
+				potentialVectors.insert({a2.first - a2.second, {a2.second, a2.first}, true});
 			}
 		} else if (touchers[i].type_ == TouchingPoint::B_ON_A) {
 			segment_t a1 = {vertexB, vertexA};
@@ -519,28 +518,25 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 	for(const auto& v : potentialVectors) {
 		bool discarded = false;
 		for(const auto& sp : touchEdges) {
-			const point_t& transStart = sp.first.first;
-			point_t transEnd;
-			trans::translate_transformer<coord_t, 2, 2> translate(v.vector_.x_, v.vector_.y_);
-			boost::geometry::transform(transStart, transEnd, translate);
-			segment_t transSeg(transStart, transEnd);
-			Alignment a1 = get_alignment(transSeg, sp.first.second);
-			Alignment a2 = get_alignment(transSeg, sp.second.second);
+			point_t normEdge = normalize(v.edge_.second - v.edge_.first);
+			point_t normFirst = normalize(sp.first.second - sp.first.first);
+			point_t normSecond = normalize(sp.second.second - sp.second.first);
+
+			Alignment a1 = get_alignment({{0,0},normEdge}, normFirst);
+			Alignment a2 = get_alignment({{0,0},normEdge}, normSecond);
+
 			if(a1 == a2 && a1 != ON) {
-				// both segments are either left or right of the translation segment
-				double df = get_inner_angle(transStart, transEnd, sp.first.second);
-				double ds = get_inner_angle(transStart, transEnd, sp.second.second);
+				double df = get_inner_angle({0,0},normEdge, normFirst);
+				double ds = get_inner_angle({0,0},normEdge, normSecond);
+				point_t normIn = normalize(v.edge_.second - v.edge_.first);
 
-				point_t normEdge = normalize(v.edge_.second - v.edge_.first);
-				point_t normTrans = normalize(transEnd - transStart);
-
-				if(normEdge == normTrans) {
-					if(larger(ds, df)) {
+				if(normIn == normalize(v.vector_)) {
+					if(equals(ds, df) || larger(ds, df)) {
 						discarded = true;
 						break;
 					}
 				} else {
-					if(equals(df, ds) || smaller(df, ds)) {
+					if(smaller(ds, df)) {
 						discarded = true;
 						break;
 					}
@@ -666,10 +662,10 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 					boost::geometry::transform(rB, translated, translate);
 
 
-					if(bg::touches(pA, translated))  {
+					//if(bg::touches(pA, translated))  {
 						last = tv;
 						return trimmed;
-					}
+					//}
 				}
 			}
 			for(auto& tv : tvs) {
@@ -688,7 +684,7 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 						trans::translate_transformer<coord_t, 2, 2> translate(trimmed.vector_.x_, trimmed.vector_.y_);
 						boost::geometry::transform(rB, translated, translate);
 
-						if(bg::touches(pA, translated))  {
+						//if(bg::touches(pA, translated))  {
 							segment_t translatedEdge;
 							boost::geometry::transform(tv.edge_, translatedEdge, translate);
 							for(const auto& ve : viableEdges) {
@@ -702,7 +698,7 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 							}
 
 							return trimmed;
-						}
+						//}
 					}
 				}
 			}
@@ -717,9 +713,9 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 			polygon_t::ring_type translated;
 			trans::translate_transformer<coord_t, 2, 2> translate(trimmed.vector_.x_, trimmed.vector_.y_);
 			boost::geometry::transform(rB, translated, translate);
-			if(bg::touches(pA, translated))  {
+			//if(bg::touches(pA, translated))  {
 					notDisconnectingTranslation.push_back(tv);
-			}
+			//}
 		}
 
 		if(notDisconnectingTranslation.empty()) {
@@ -929,18 +925,15 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 	return LOOP;
 }
 
-nfp_t generateNFP(polygon_t& pA, polygon_t& pB) {
-	if(pA.outer().size() < 3 || pB.outer().size() < 3) {
-		throw std::runtime_error("Input polygons must have at least 3 points");
+nfp_t generateNFP(polygon_t& pA, polygon_t& pB, const bool checkValidity = true) {
+	if(checkValidity)  {
+		std::string reason;
+		if(!bg::is_valid(pA, reason))
+			throw std::runtime_error("Polygon A is invalid: " + reason);
+
+		if(!bg::is_valid(pB, reason))
+			throw std::runtime_error("Polygon B is invalid: " + reason);
 	}
-
-	std::string reason;
-	if(!bg::is_valid(pA, reason))
-		throw std::runtime_error("Polygon A is invalid: " + reason);
-
-	if(!bg::is_valid(pB, reason))
-		throw std::runtime_error("Polygon B is invalid: " + reason);
-
 	nfp_t nfp;
 
 #ifdef NFP_DEBUG
