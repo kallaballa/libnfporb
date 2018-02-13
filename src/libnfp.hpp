@@ -13,6 +13,7 @@
 #include <boost/multiprecision/gmp.hpp>
 #include <boost/multiprecision/number.hpp>
 #include <boost/geometry.hpp>
+#include <boost/geometry/util/math.hpp>
 #include <boost/geometry/geometries/point_xy.hpp>
 #include <boost/geometry/geometries/polygon.hpp>
 #include <boost/geometry/geometries/linestring.hpp>
@@ -101,10 +102,7 @@ public:
 	}
 
 	bool operator==(const long double& other) const {
-		if(this->val_ == other)
-			return true;
-
-    return bg::math::detail::abs<long double>::apply(this->val() - other) <=  NFP_EPSILON * std::max(this->val(), other);
+		return this->val() == other;
 	}
 
 	bool operator!=(const int& other) const {
@@ -128,9 +126,6 @@ public:
 	}
 
 	bool operator<(const long double& other) const {
-		if((*this) == other)
-			return false;
-
 		return this->val() < other;
 	}
 
@@ -143,9 +138,6 @@ public:
 	}
 
 	bool operator>(const long double& other) const {
-		if((*this) == other)
-			return false;
-
 		return this->val() > other;
 	}
 
@@ -158,10 +150,7 @@ public:
 	}
 
 	bool operator>=(const long double& other) const {
-		if((*this) == other)
-			return true;
-
-		return this->val() > other;
+		return this->val() >= other;
 	}
 
 	bool operator<=(const int& other) const {
@@ -173,10 +162,7 @@ public:
 	}
 
 	bool operator<=(const long double& other) const {
-		if((*this) == other)
-			return true;
-
-		return this->val() < other;
+		return this->val() <= other;
 	}
 };
 }
@@ -270,13 +256,14 @@ namespace numeric {
 
 
 namespace libnfp {
+
+bool equals(const LongDouble& lhs, const LongDouble& rhs);
+
 typedef bm::number<bm::gmp_rational, bm::et_off> rational_t;
 typedef LongDouble coord_t;
 
 const coord_t MAX_COORD = 999999999999999999;
 const coord_t MIN_COORD = std::numeric_limits<coord_t>::min();
-
-bool equals(const coord_t& lhs, const coord_t& rhs);
 
 class point_t {
 public:
@@ -314,18 +301,6 @@ public:
 };
 
 typedef std::vector<std::vector<point_t>> nfp_t;
-
-inline bool larger(const coord_t& lhs, const coord_t& rhs) {
-	return lhs > rhs;
-}
-
-inline bool smaller(const coord_t& lhs, const coord_t& rhs) {
-	return lhs < rhs;
-}
-
-bool equals(const coord_t& lhs, const coord_t& rhs) {
-	return lhs == rhs;
-}
 
 inline double toDouble(const long double& c) {
 	return static_cast<double>(c);
@@ -372,11 +347,6 @@ BOOST_GEOMETRY_REGISTER_POINT_2D(libnfp::point_t, libnfp::coord_t, cs::cartesian
 
 namespace boost {
 namespace geometry {
-
-template<> inline bool equals<libnfp::LongDouble>(const libnfp::LongDouble& lhs, const libnfp::LongDouble& rhs) {
-	return lhs == rhs;
-}
-
 namespace math {
 namespace detail {
 
@@ -390,14 +360,6 @@ struct square_root<libnfp::LongDouble>
         return std::sqrt(a.val());
   }
 };
-template <>
-struct smaller<libnfp::LongDouble>
-{
-	static inline bool apply(libnfp::LongDouble const& a, libnfp::LongDouble const& b)
-  {
-        return a < b;
-  }
-};
 
 template<>
 struct abs<libnfp::LongDouble>
@@ -408,10 +370,37 @@ struct abs<libnfp::LongDouble>
 					return value.val() < zero.val() ? -value.val() : value.val();
 			}
 	};
+
+template <>
+struct equals<libnfp::LongDouble, false>
+{
+	template<typename Policy>
+	static inline bool apply(libnfp::LongDouble const& lhs, libnfp::LongDouble const& rhs, Policy const& policy)
+  {
+		if(lhs.val() == rhs.val())
+			return true;
+
+	  return bg::math::detail::abs<libnfp::LongDouble>::apply(lhs.val() - rhs.val()) <=  policy.apply(lhs.val(), rhs.val()) * libnfp::NFP_EPSILON;
+  }
+};
+
+template <>
+struct smaller<libnfp::LongDouble>
+{
+	static inline bool apply(libnfp::LongDouble const& lhs, libnfp::LongDouble const& rhs)
+  {
+		if(lhs.val() == rhs.val() || bg::math::detail::abs<libnfp::LongDouble>::apply(lhs.val() - rhs.val()) <=  libnfp::NFP_EPSILON * std::max(lhs.val(), rhs.val()))
+			return false;
+
+	  return lhs < rhs;
+  }
+};
 }
 }
 }
 }
+
+
 /*
 namespace boost {
 namespace geometry {
@@ -428,6 +417,23 @@ length(libnfp::segment_t const& seg)
 }}*/
 
 namespace libnfp {
+
+
+inline bool smaller(const LongDouble& lhs, const LongDouble& rhs) {
+	return boost::geometry::math::detail::smaller<LongDouble>::apply(lhs, rhs);
+}
+
+inline bool larger(const LongDouble& lhs, const LongDouble& rhs) {
+  return smaller(rhs, lhs);
+}
+
+bool equals(const LongDouble& lhs, const LongDouble& rhs) {
+	if(lhs.val() == rhs.val())
+		return true;
+
+  return bg::math::detail::abs<libnfp::LongDouble>::apply(lhs.val() - rhs.val()) <=  libnfp::NFP_EPSILON * std::max(lhs.val(), rhs.val());
+}
+
 typedef bg::model::polygon<point_t, false, true> polygon_t;
 typedef bg::model::linestring<point_t> linestring_t;
 
