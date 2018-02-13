@@ -658,14 +658,8 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 				if((tv.fromA_ && (normalize(tv.vector_) == normalize(ve.second - ve.first)))) {
 					polygon_t::ring_type translated;
 					TranslationVector trimmed = trimVector(rA, rB, tv);
-					trans::translate_transformer<coord_t, 2, 2> translate(trimmed.vector_.x_, trimmed.vector_.y_);
-					boost::geometry::transform(rB, translated, translate);
-
-
-					//if(bg::touches(pA, translated))  {
-						last = tv;
-						return trimmed;
-					//}
+					last = tv;
+					return trimmed;
 				}
 			}
 			for(auto& tv : tvs) {
@@ -679,27 +673,22 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 						continue;
 
 					if(later == ve.first) {
-						polygon_t::ring_type translated;
 						TranslationVector trimmed = trimVector(rA, rB, tv);
 						trans::translate_transformer<coord_t, 2, 2> translate(trimmed.vector_.x_, trimmed.vector_.y_);
-						boost::geometry::transform(rB, translated, translate);
-
-						//if(bg::touches(pA, translated))  {
-							segment_t translatedEdge;
-							boost::geometry::transform(tv.edge_, translatedEdge, translate);
-							for(const auto& ve : viableEdges) {
-								if(ve == translatedEdge) {
-									TranslationVector newTv;
-									last = tv;
-									last.edge_ = ve;
-									last.fromA_ = true;
-									return trimmed;
-								}
+						segment_t translatedEdge;
+						boost::geometry::transform(tv.edge_, translatedEdge, translate);
+						for(const auto& ve : viableEdges) {
+							if(ve == translatedEdge) {
+								TranslationVector newTv;
+								last = tv;
+								last.edge_ = ve;
+								last.fromA_ = true;
+								return trimmed;
 							}
+						}
 
-							return trimmed;
-						//}
-					}
+						return trimmed;
+				}
 				}
 			}
 		}
@@ -709,13 +698,7 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 	} else {
 		std::vector<TranslationVector> notDisconnectingTranslation;
 		for (auto& tv : tvs) {
-			TranslationVector trimmed = trimVector(rA, rB, tv);
-			polygon_t::ring_type translated;
-			trans::translate_transformer<coord_t, 2, 2> translate(trimmed.vector_.x_, trimmed.vector_.y_);
-			boost::geometry::transform(rB, translated, translate);
-			//if(bg::touches(pA, translated))  {
-					notDisconnectingTranslation.push_back(tv);
-			//}
+			notDisconnectingTranslation.push_back(tv);
 		}
 
 		if(notDisconnectingTranslation.empty()) {
