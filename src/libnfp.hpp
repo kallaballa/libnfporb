@@ -257,10 +257,13 @@ namespace numeric {
 
 namespace libnfp {
 
-bool equals(const LongDouble& lhs, const LongDouble& rhs);
-
 typedef bm::number<bm::gmp_rational, bm::et_off> rational_t;
 typedef LongDouble coord_t;
+
+bool equals(const LongDouble& lhs, const LongDouble& rhs);
+bool equals(const rational_t& lhs, const rational_t& rhs);
+bool equals(const long double& lhs, const long double& rhs);
+
 
 const coord_t MAX_COORD = 999999999999999999;
 const coord_t MIN_COORD = std::numeric_limits<coord_t>::min();
@@ -302,46 +305,52 @@ public:
 
 typedef std::vector<std::vector<point_t>> nfp_t;
 
-inline double toDouble(const long double& c) {
-	return static_cast<double>(c);
-}
 
-inline double toDouble(const LongDouble& c) {
+inline long double toLongDouble(const LongDouble& c) {
 	return c.val();
 }
 
-inline double toDouble(const rational_t& c) {
-	return bm::numerator(c).convert_to<double>() / bm::denominator(c).convert_to<double>();
+inline long double toLongDouble(const rational_t& c) {
+	return bm::numerator(c).convert_to<long double>() / bm::denominator(c).convert_to<long double>();
 }
 
 std::ostream& operator<<(std::ostream& os, const coord_t& p) {
-	os << toDouble(p);
+	os << toLongDouble(p);
 	return os;
 }
 
 std::istream& operator>>(std::istream& is, LongDouble& c) {
-	double val;
+	long double val;
 	is >> val;
 	c.setVal(val);
 	return is;
 }
 
 std::ostream& operator<<(std::ostream& os, const point_t& p) {
-	os << "{" << toDouble(p.x_) << "," << toDouble(p.y_) << "}";
+	os << "{" << toLongDouble(p.x_) << "," << toLongDouble(p.y_) << "}";
 	return os;
 }
 const point_t INVALID_POINT = {MAX_COORD, MAX_COORD};
 
 typedef bg::model::segment<point_t> segment_t;
-
-inline double c_sqrt(const coord_t& p) {
-	return sqrt(toDouble(p));
 }
 
-inline double c_acos(const coord_t& p) {
-	return acos(toDouble(p));
+inline long double acos(const libnfp::rational_t& r) {
+	return acos(libnfp::toLongDouble(r));
 }
+
+inline long double acos(const libnfp::LongDouble& ld) {
+	return acos(libnfp::toLongDouble(ld));
 }
+
+inline long double sqrt(const libnfp::rational_t& r) {
+	return sqrt(libnfp::toLongDouble(r));
+}
+
+inline long double sqrt(const libnfp::LongDouble& ld) {
+	return sqrt(libnfp::toLongDouble(ld));
+}
+
 BOOST_GEOMETRY_REGISTER_POINT_2D(libnfp::point_t, libnfp::coord_t, cs::cartesian, x_, y_)
 
 
@@ -358,6 +367,17 @@ struct square_root<libnfp::LongDouble>
 	static inline libnfp::LongDouble apply(libnfp::LongDouble const& a)
   {
         return std::sqrt(a.val());
+  }
+};
+
+template <>
+struct square_root<libnfp::rational_t>
+{
+  typedef libnfp::rational_t return_type;
+
+	static inline libnfp::rational_t apply(libnfp::rational_t const& a)
+  {
+        return std::sqrt(libnfp::toLongDouble(a));
   }
 };
 
@@ -434,19 +454,44 @@ bool equals(const LongDouble& lhs, const LongDouble& rhs) {
   return bg::math::detail::abs<libnfp::LongDouble>::apply(lhs.val() - rhs.val()) <=  libnfp::NFP_EPSILON * std::max(lhs.val(), rhs.val());
 }
 
+inline bool smaller(const rational_t& lhs, const rational_t& rhs) {
+	return lhs < rhs;
+}
+
+inline bool larger(const rational_t& lhs, const rational_t& rhs) {
+  return smaller(rhs, lhs);
+}
+
+bool equals(const rational_t& lhs, const rational_t& rhs) {
+	return lhs == rhs;
+}
+
+inline bool smaller(const long double& lhs, const long double& rhs) {
+	return lhs < rhs;
+}
+
+inline bool larger(const long double& lhs, const long double& rhs) {
+  return smaller(rhs, lhs);
+}
+
+
+bool equals(const long double& lhs, const long double& rhs) {
+	return lhs == rhs;
+}
+
 typedef bg::model::polygon<point_t, false, true> polygon_t;
 typedef bg::model::linestring<point_t> linestring_t;
 
 typedef typename polygon_t::ring_type::size_type psize_t;
 
-typedef bg::model::d2::point_xy<double> pointf_t;
+typedef bg::model::d2::point_xy<long double> pointf_t;
 typedef bg::model::segment<pointf_t> segmentf_t;
 typedef bg::model::polygon<pointf_t, false, true> polygonf_t;
 
 polygonf_t::ring_type convert(const polygon_t::ring_type& r) {
 	polygonf_t::ring_type rf;
 	for(const auto& pt : r) {
-		rf.push_back(pointf_t(toDouble(pt.x_), toDouble(pt.y_)));
+		rf.push_back(pointf_t(toLongDouble(pt.x_), toLongDouble(pt.y_)));
 	}
 	return rf;
 }
@@ -483,7 +528,7 @@ void write_svg(std::string const& filename,const std::vector<segment_t>& segment
 
     boost::geometry::svg_mapper<pointf_t> mapper(svg, 100, 100, "width=\"200mm\" height=\"200mm\" viewBox=\"-250 -250 500 500\"");
     for(const auto& seg : segments) {
-    	segmentf_t segf({toDouble(seg.first.x_), toDouble(seg.first.y_)}, {toDouble(seg.second.x_), toDouble(seg.second.y_)});
+    	segmentf_t segf({toLongDouble(seg.first.x_), toLongDouble(seg.first.y_)}, {toLongDouble(seg.second.x_), toLongDouble(seg.second.y_)});
     	mapper.add(segf);
     	mapper.map(segf, "fill-opacity:0.5;fill:rgb(153,204,0);stroke:rgb(153,204,0);stroke-width:2");
     }
@@ -595,16 +640,16 @@ Alignment get_alignment(const segment_t& seg, const point_t& pt){
 	}
 }
 
-double get_inner_angle(const point_t& joint, const point_t& end1, const point_t& end2) {
+long double get_inner_angle(const point_t& joint, const point_t& end1, const point_t& end2) {
 	coord_t dx21 = end1.x_-joint.x_;
 	coord_t dx31 = end2.x_-joint.x_;
 	coord_t dy21 = end1.y_-joint.y_;
 	coord_t dy31 = end2.y_-joint.y_;
-	coord_t m12 = c_sqrt((dx21*dx21 + dy21*dy21));
-	coord_t m13 = c_sqrt((dx31*dx31 + dy31*dy31));
+	coord_t m12 = sqrt((dx21*dx21 + dy21*dy21));
+	coord_t m13 = sqrt((dx31*dx31 + dy31*dy31));
 	if(m12 == 0.0L || m13 == 0.0L)
 		return 0;
-	return c_acos( (dx21*dx31 + dy21*dy31) / (m12 * m13) );
+	return acos( (dx21*dx31 + dy21*dy31) / (m12 * m13) );
 }
 
 struct TouchingPoint {
@@ -831,8 +876,8 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 			Alignment a2 = get_alignment({{0,0},normEdge}, normSecond);
 
 			if(a1 == a2 && a1 != ON) {
-				double df = get_inner_angle({0,0},normEdge, normFirst);
-				double ds = get_inner_angle({0,0},normEdge, normSecond);
+				long double df = get_inner_angle({0,0},normEdge, normFirst);
+				long double ds = get_inner_angle({0,0},normEdge, normSecond);
 				point_t normIn = normalize(v.edge_.second - v.edge_.first);
 
 				if(normIn == normalize(v.vector_)) {
