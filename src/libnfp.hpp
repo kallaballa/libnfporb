@@ -24,6 +24,7 @@ namespace bm = boost::multiprecision;
 namespace bg = boost::geometry;
 namespace trans = boost::geometry::strategy::transform;
 
+
 namespace libnfp {
 #ifdef NFP_DEBUG
 #define DEBUG_VAL(x) std::cerr << x << std::endl;
@@ -35,8 +36,242 @@ namespace libnfp {
 
 using std::string;
 
+static const long double NFP_EPSILON=0.000001;
+
+class LongDouble {
+private:
+	long double val_;
+public:
+	LongDouble() : val_(0) {
+	}
+
+	LongDouble(const long double& val) : val_(val) {
+	}
+
+	void setVal(const long double& v) {
+		val_ = v;
+	}
+
+	long double val() const {
+		return val_;
+	}
+
+	LongDouble operator/(const LongDouble& other) const {
+		return this->val_ / other.val_;
+	}
+
+	LongDouble operator*(const LongDouble& other) const {
+		return this->val_ * other.val_;
+	}
+
+	LongDouble operator-(const LongDouble& other) const {
+		return this->val_ - other.val_;
+	}
+
+	LongDouble operator-() const {
+		return this->val_ * -1;
+	}
+
+	LongDouble operator+(const LongDouble& other) const {
+		return this->val_ + other.val_;
+	}
+
+	void operator/=(const LongDouble& other) {
+		this->val_ = this->val_ / other.val_;
+	}
+
+	void operator*=(const LongDouble& other) {
+		this->val_ = this->val_ * other.val_;
+	}
+
+	void operator-=(const LongDouble& other) {
+		this->val_ = this->val_ - other.val_;
+	}
+
+	void operator+=(const LongDouble& other) {
+		this->val_ = this->val_ + other.val_;
+	}
+
+	bool operator==(const int& other) const {
+		return this->operator ==(static_cast<long double>(other));
+	}
+
+	bool operator==(const LongDouble& other) const {
+		return this->operator ==(other.val());
+	}
+
+	bool operator==(const long double& other) const {
+		if(this->val_ == other)
+			return true;
+
+    return bg::math::detail::abs<long double>::apply(this->val() - other) <=  NFP_EPSILON * std::max(this->val(), other);
+	}
+
+	bool operator!=(const int& other) const {
+		return !this->operator ==(other);
+	}
+
+	bool operator!=(const LongDouble& other) const {
+		return !this->operator ==(other);
+	}
+
+	bool operator!=(const long double& other) const {
+		return !this->operator ==(other);
+	}
+
+	bool operator<(const int& other) const {
+		return this->operator <(static_cast<long double>(other));
+	}
+
+	bool operator<(const LongDouble& other) const {
+		return this->operator <(other.val());
+	}
+
+	bool operator<(const long double& other) const {
+		if((*this) == other)
+			return false;
+
+		return this->val() < other;
+	}
+
+	bool operator>(const int& other) const {
+		return this->operator >(static_cast<long double>(other));
+	}
+
+	bool operator>(const LongDouble& other) const {
+		return this->operator >(other.val());
+	}
+
+	bool operator>(const long double& other) const {
+		if((*this) == other)
+			return false;
+
+		return this->val() > other;
+	}
+
+	bool operator>=(const int& other) const {
+		return this->operator >=(static_cast<long double>(other));
+	}
+
+	bool operator>=(const LongDouble& other) const {
+		return this->operator >=(other.val());
+	}
+
+	bool operator>=(const long double& other) const {
+		if((*this) == other)
+			return true;
+
+		return this->val() > other;
+	}
+
+	bool operator<=(const int& other) const {
+		return this->operator <=(static_cast<long double>(other));
+	}
+
+	bool operator<=(const LongDouble& other) const {
+		return this->operator <=(other.val());
+	}
+
+	bool operator<=(const long double& other) const {
+		if((*this) == other)
+			return true;
+
+		return this->val() < other;
+	}
+};
+}
+
+
+namespace std {
+template<>
+   struct numeric_limits<libnfp::LongDouble>
+   {
+     static _GLIBCXX_USE_CONSTEXPR bool is_specialized = true;
+
+     static _GLIBCXX_CONSTEXPR long double
+     min() _GLIBCXX_USE_NOEXCEPT { return __LDBL_MIN__; }
+
+     static _GLIBCXX_CONSTEXPR long double
+     max() _GLIBCXX_USE_NOEXCEPT { return __LDBL_MAX__; }
+
+#if __cplusplus >= 201103L
+     static constexpr long double
+     lowest() noexcept { return -__LDBL_MAX__; }
+#endif
+
+     static _GLIBCXX_USE_CONSTEXPR int digits = __LDBL_MANT_DIG__;
+     static _GLIBCXX_USE_CONSTEXPR int digits10 = __LDBL_DIG__;
+#if __cplusplus >= 201103L
+     static _GLIBCXX_USE_CONSTEXPR int max_digits10
+	 = std::numeric_limits<long double>::max_digits10;
+#endif
+     static _GLIBCXX_USE_CONSTEXPR bool is_signed = true;
+     static _GLIBCXX_USE_CONSTEXPR bool is_integer = false;
+     static _GLIBCXX_USE_CONSTEXPR bool is_exact = false;
+     static _GLIBCXX_USE_CONSTEXPR int radix = __FLT_RADIX__;
+
+     static _GLIBCXX_CONSTEXPR long double
+     epsilon() _GLIBCXX_USE_NOEXCEPT { return libnfp::NFP_EPSILON; }
+
+     static _GLIBCXX_CONSTEXPR long double
+     round_error() _GLIBCXX_USE_NOEXCEPT { return 0.5L; }
+
+     static _GLIBCXX_USE_CONSTEXPR int min_exponent = __LDBL_MIN_EXP__;
+     static _GLIBCXX_USE_CONSTEXPR int min_exponent10 = __LDBL_MIN_10_EXP__;
+     static _GLIBCXX_USE_CONSTEXPR int max_exponent = __LDBL_MAX_EXP__;
+     static _GLIBCXX_USE_CONSTEXPR int max_exponent10 = __LDBL_MAX_10_EXP__;
+
+     static _GLIBCXX_USE_CONSTEXPR bool has_infinity = __LDBL_HAS_INFINITY__;
+     static _GLIBCXX_USE_CONSTEXPR bool has_quiet_NaN = __LDBL_HAS_QUIET_NAN__;
+     static _GLIBCXX_USE_CONSTEXPR bool has_signaling_NaN = has_quiet_NaN;
+     static _GLIBCXX_USE_CONSTEXPR float_denorm_style has_denorm
+	= bool(__LDBL_HAS_DENORM__) ? denorm_present : denorm_absent;
+     static _GLIBCXX_USE_CONSTEXPR bool has_denorm_loss
+	= std::numeric_limits<long double>::has_denorm_loss;
+
+     static _GLIBCXX_CONSTEXPR long double
+     infinity() _GLIBCXX_USE_NOEXCEPT { return __builtin_huge_vall(); }
+
+     static _GLIBCXX_CONSTEXPR long double
+     quiet_NaN() _GLIBCXX_USE_NOEXCEPT { return __builtin_nanl(""); }
+
+     static _GLIBCXX_CONSTEXPR long double
+     signaling_NaN() _GLIBCXX_USE_NOEXCEPT { return __builtin_nansl(""); }
+
+     static _GLIBCXX_CONSTEXPR long double
+     denorm_min() _GLIBCXX_USE_NOEXCEPT { return __LDBL_DENORM_MIN__; }
+
+     static _GLIBCXX_USE_CONSTEXPR bool is_iec559
+	= has_infinity && has_quiet_NaN && has_denorm == denorm_present;
+     static _GLIBCXX_USE_CONSTEXPR bool is_bounded = true;
+     static _GLIBCXX_USE_CONSTEXPR bool is_modulo = false;
+
+     static _GLIBCXX_USE_CONSTEXPR bool traps = std::numeric_limits<long double>::traps;
+     static _GLIBCXX_USE_CONSTEXPR bool tinyness_before =
+    		 std::numeric_limits<long double>::tinyness_before;
+     static _GLIBCXX_USE_CONSTEXPR float_round_style round_style =
+						      round_to_nearest;
+   };
+}
+
+namespace boost {
+namespace numeric {
+	template<>
+	struct raw_converter<boost::numeric::conversion_traits<double, libnfp::LongDouble>>
+	{
+		typedef typename boost::numeric::conversion_traits<double, libnfp::LongDouble>::result_type   result_type   ;
+		typedef typename boost::numeric::conversion_traits<double, libnfp::LongDouble>::argument_type argument_type ;
+
+		static result_type low_level_convert ( argument_type s ) { return s.val() ; }
+	} ;
+
+}
+}
+
+
+namespace libnfp {
 typedef bm::number<bm::gmp_rational, bm::et_off> rational_t;
-typedef rational_t coord_t;
+typedef LongDouble coord_t;
 
 const coord_t MAX_COORD = 999999999999999999;
 const coord_t MIN_COORD = std::numeric_limits<coord_t>::min();
@@ -92,8 +327,28 @@ bool equals(const coord_t& lhs, const coord_t& rhs) {
 	return lhs == rhs;
 }
 
+inline double toDouble(const long double& c) {
+	return static_cast<double>(c);
+}
+
+inline double toDouble(const LongDouble& c) {
+	return c.val();
+}
+
 inline double toDouble(const rational_t& c) {
 	return bm::numerator(c).convert_to<double>() / bm::denominator(c).convert_to<double>();
+}
+
+std::ostream& operator<<(std::ostream& os, const coord_t& p) {
+	os << toDouble(p);
+	return os;
+}
+
+std::istream& operator>>(std::istream& is, LongDouble& c) {
+	double val;
+	is >> val;
+	c.setVal(val);
+	return is;
 }
 
 std::ostream& operator<<(std::ostream& os, const point_t& p) {
@@ -114,6 +369,50 @@ inline double c_acos(const coord_t& p) {
 }
 BOOST_GEOMETRY_REGISTER_POINT_2D(libnfp::point_t, libnfp::coord_t, cs::cartesian, x_, y_)
 
+
+namespace boost {
+namespace geometry {
+
+template<> inline bool equals<libnfp::LongDouble>(const libnfp::LongDouble& lhs, const libnfp::LongDouble& rhs) {
+	return lhs == rhs;
+}
+
+namespace math {
+namespace detail {
+
+template <>
+struct square_root<libnfp::LongDouble>
+{
+  typedef libnfp::LongDouble return_type;
+
+	static inline libnfp::LongDouble apply(libnfp::LongDouble const& a)
+  {
+        return std::sqrt(a.val());
+  }
+};
+template <>
+struct smaller<libnfp::LongDouble>
+{
+	static inline bool apply(libnfp::LongDouble const& a, libnfp::LongDouble const& b)
+  {
+        return a < b;
+  }
+};
+
+template<>
+struct abs<libnfp::LongDouble>
+	{
+	static libnfp::LongDouble apply(libnfp::LongDouble const& value)
+			{
+				libnfp::LongDouble const zero = libnfp::LongDouble();
+					return value.val() < zero.val() ? -value.val() : value.val();
+			}
+	};
+}
+}
+}
+}
+/*
 namespace boost {
 namespace geometry {
 template<>
@@ -126,7 +425,7 @@ length(libnfp::segment_t const& seg)
 
 	return libnfp::c_sqrt(p);
 }
-}}
+}}*/
 
 namespace libnfp {
 typedef bg::model::polygon<point_t, false, true> polygon_t;
@@ -268,7 +567,7 @@ point_t normalize(const point_t& pt) {
 	point_t norm = pt;
 	coord_t len = bg::length(segment_t{{0,0},pt});
 
-	if(len == 0)
+	if(len == 0.0L)
 		return {0,0};
 
 	norm.x_ /= len;
@@ -297,7 +596,7 @@ double get_inner_angle(const point_t& joint, const point_t& end1, const point_t&
 	coord_t dy31 = end2.y_-joint.y_;
 	coord_t m12 = c_sqrt((dx21*dx21 + dy21*dy21));
 	coord_t m13 = c_sqrt((dx31*dx31 + dy31*dy31));
-	if(m12 == 0 || m13 == 0)
+	if(m12 == 0.0L || m13 == 0.0L)
 		return 0;
 	return c_acos( (dx21*dx31 + dy21*dy31) / (m12 * m13) );
 }
