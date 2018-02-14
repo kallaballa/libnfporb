@@ -12,4 +12,5 @@ src/libnfp.so
 valgrind.log
 perf.data
 perf.data.old
-
+testfuzz.log
+test.log
