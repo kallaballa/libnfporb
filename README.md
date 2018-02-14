@@ -81,3 +81,6 @@ int main(int argc, char** argv) {
   return 0;
 }
 ```
+Run the example program:
+
+    examples/nfp data/crossing/A.wkt data/crossing/B.wkt
