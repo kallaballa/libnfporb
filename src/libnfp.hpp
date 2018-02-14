@@ -37,7 +37,7 @@ namespace libnfp {
 
 using std::string;
 
-static const long double NFP_EPSILON=0.00000001;
+static constexpr long double NFP_EPSILON=0.00000001;
 
 class LongDouble {
 private:
@@ -172,70 +172,70 @@ namespace std {
 template<>
    struct numeric_limits<libnfp::LongDouble>
    {
-     static _GLIBCXX_USE_CONSTEXPR bool is_specialized = true;
+     static constexpr bool is_specialized = true;
 
-     static _GLIBCXX_CONSTEXPR long double
-     min() _GLIBCXX_USE_NOEXCEPT { return __LDBL_MIN__; }
+     static constexpr long double
+     min() noexcept { return __LDBL_MIN__; }
 
-     static _GLIBCXX_CONSTEXPR long double
-     max() _GLIBCXX_USE_NOEXCEPT { return __LDBL_MAX__; }
+     static constexpr long double
+     max() noexcept { return __LDBL_MAX__; }
 
 #if __cplusplus >= 201103L
      static constexpr long double
      lowest() noexcept { return -__LDBL_MAX__; }
 #endif
 
-     static _GLIBCXX_USE_CONSTEXPR int digits = __LDBL_MANT_DIG__;
-     static _GLIBCXX_USE_CONSTEXPR int digits10 = __LDBL_DIG__;
+     static constexpr int digits = __LDBL_MANT_DIG__;
+     static constexpr int digits10 = __LDBL_DIG__;
 #if __cplusplus >= 201103L
-     static _GLIBCXX_USE_CONSTEXPR int max_digits10
+     static constexpr int max_digits10
 	 = std::numeric_limits<long double>::max_digits10;
 #endif
-     static _GLIBCXX_USE_CONSTEXPR bool is_signed = true;
-     static _GLIBCXX_USE_CONSTEXPR bool is_integer = false;
-     static _GLIBCXX_USE_CONSTEXPR bool is_exact = false;
-     static _GLIBCXX_USE_CONSTEXPR int radix = __FLT_RADIX__;
+     static constexpr bool is_signed = true;
+     static constexpr bool is_integer = false;
+     static constexpr bool is_exact = false;
+     static constexpr int radix = __FLT_RADIX__;
 
-     static _GLIBCXX_CONSTEXPR long double
-     epsilon() _GLIBCXX_USE_NOEXCEPT { return libnfp::NFP_EPSILON; }
+     static constexpr long double
+     epsilon() noexcept { return libnfp::NFP_EPSILON; }
 
-     static _GLIBCXX_CONSTEXPR long double
-     round_error() _GLIBCXX_USE_NOEXCEPT { return 0.5L; }
+     static constexpr long double
+     round_error() noexcept { return 0.5L; }
 
-     static _GLIBCXX_USE_CONSTEXPR int min_exponent = __LDBL_MIN_EXP__;
-     static _GLIBCXX_USE_CONSTEXPR int min_exponent10 = __LDBL_MIN_10_EXP__;
-     static _GLIBCXX_USE_CONSTEXPR int max_exponent = __LDBL_MAX_EXP__;
-     static _GLIBCXX_USE_CONSTEXPR int max_exponent10 = __LDBL_MAX_10_EXP__;
+     static constexpr int min_exponent = __LDBL_MIN_EXP__;
+     static constexpr int min_exponent10 = __LDBL_MIN_10_EXP__;
+     static constexpr int max_exponent = __LDBL_MAX_EXP__;
+     static constexpr int max_exponent10 = __LDBL_MAX_10_EXP__;
 
-     static _GLIBCXX_USE_CONSTEXPR bool has_infinity = __LDBL_HAS_INFINITY__;
-     static _GLIBCXX_USE_CONSTEXPR bool has_quiet_NaN = __LDBL_HAS_QUIET_NAN__;
-     static _GLIBCXX_USE_CONSTEXPR bool has_signaling_NaN = has_quiet_NaN;
-     static _GLIBCXX_USE_CONSTEXPR float_denorm_style has_denorm
+     static constexpr bool has_infinity = __LDBL_HAS_INFINITY__;
+     static constexpr bool has_quiet_NaN = __LDBL_HAS_QUIET_NAN__;
+     static constexpr bool has_signaling_NaN = has_quiet_NaN;
+     static constexpr float_denorm_style has_denorm
 	= bool(__LDBL_HAS_DENORM__) ? denorm_present : denorm_absent;
-     static _GLIBCXX_USE_CONSTEXPR bool has_denorm_loss
+     static constexpr bool has_denorm_loss
 	= std::numeric_limits<long double>::has_denorm_loss;
 
-     static _GLIBCXX_CONSTEXPR long double
-     infinity() _GLIBCXX_USE_NOEXCEPT { return __builtin_huge_vall(); }
+     static constexpr long double
+     infinity() noexcept { return __builtin_huge_vall(); }
 
-     static _GLIBCXX_CONSTEXPR long double
-     quiet_NaN() _GLIBCXX_USE_NOEXCEPT { return __builtin_nanl(""); }
+     static constexpr long double
+     quiet_NaN() noexcept { return __builtin_nanl(""); }
 
-     static _GLIBCXX_CONSTEXPR long double
-     signaling_NaN() _GLIBCXX_USE_NOEXCEPT { return __builtin_nansl(""); }
+     static constexpr long double
+     signaling_NaN() noexcept { return __builtin_nansl(""); }
 
-     static _GLIBCXX_CONSTEXPR long double
-     denorm_min() _GLIBCXX_USE_NOEXCEPT { return __LDBL_DENORM_MIN__; }
+     static constexpr long double
+     denorm_min() noexcept { return __LDBL_DENORM_MIN__; }
 
-     static _GLIBCXX_USE_CONSTEXPR bool is_iec559
+     static constexpr bool is_iec559
 	= has_infinity && has_quiet_NaN && has_denorm == denorm_present;
-     static _GLIBCXX_USE_CONSTEXPR bool is_bounded = true;
-     static _GLIBCXX_USE_CONSTEXPR bool is_modulo = false;
+     static constexpr bool is_bounded = true;
+     static constexpr bool is_modulo = false;
 
-     static _GLIBCXX_USE_CONSTEXPR bool traps = std::numeric_limits<long double>::traps;
-     static _GLIBCXX_USE_CONSTEXPR bool tinyness_before =
+     static constexpr bool traps = std::numeric_limits<long double>::traps;
+     static constexpr bool tinyness_before =
     		 std::numeric_limits<long double>::tinyness_before;
-     static _GLIBCXX_USE_CONSTEXPR float_round_style round_style =
+     static constexpr float_round_style round_style =
 						      round_to_nearest;
    };
 }
