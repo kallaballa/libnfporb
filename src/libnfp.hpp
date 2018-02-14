@@ -13,6 +13,7 @@
 #include <boost/multiprecision/gmp.hpp>
 #include <boost/multiprecision/number.hpp>
 #include <boost/geometry.hpp>
+#include <boost/geometry/util/math.hpp>
 #include <boost/geometry/geometries/point_xy.hpp>
 #include <boost/geometry/geometries/polygon.hpp>
 #include <boost/geometry/geometries/linestring.hpp>
@@ -23,6 +24,7 @@
 namespace bm = boost::multiprecision;
 namespace bg = boost::geometry;
 namespace trans = boost::geometry::strategy::transform;
+
 
 namespace libnfp {
 #ifdef NFP_DEBUG
@@ -35,13 +37,237 @@ namespace libnfp {
 
 using std::string;
 
+static const long double NFP_EPSILON=0.00000001;
+
+class LongDouble {
+private:
+	long double val_;
+public:
+	LongDouble() : val_(0) {
+	}
+
+	LongDouble(const long double& val) : val_(val) {
+	}
+
+	void setVal(const long double& v) {
+		val_ = v;
+	}
+
+	long double val() const {
+		return val_;
+	}
+
+	LongDouble operator/(const LongDouble& other) const {
+		return this->val_ / other.val_;
+	}
+
+	LongDouble operator*(const LongDouble& other) const {
+		return this->val_ * other.val_;
+	}
+
+	LongDouble operator-(const LongDouble& other) const {
+		return this->val_ - other.val_;
+	}
+
+	LongDouble operator-() const {
+		return this->val_ * -1;
+	}
+
+	LongDouble operator+(const LongDouble& other) const {
+		return this->val_ + other.val_;
+	}
+
+	void operator/=(const LongDouble& other) {
+		this->val_ = this->val_ / other.val_;
+	}
+
+	void operator*=(const LongDouble& other) {
+		this->val_ = this->val_ * other.val_;
+	}
+
+	void operator-=(const LongDouble& other) {
+		this->val_ = this->val_ - other.val_;
+	}
+
+	void operator+=(const LongDouble& other) {
+		this->val_ = this->val_ + other.val_;
+	}
+
+	bool operator==(const int& other) const {
+		return this->operator ==(static_cast<long double>(other));
+	}
+
+	bool operator==(const LongDouble& other) const {
+		return this->operator ==(other.val());
+	}
+
+	bool operator==(const long double& other) const {
+		return this->val() == other;
+	}
+
+	bool operator!=(const int& other) const {
+		return !this->operator ==(other);
+	}
+
+	bool operator!=(const LongDouble& other) const {
+		return !this->operator ==(other);
+	}
+
+	bool operator!=(const long double& other) const {
+		return !this->operator ==(other);
+	}
+
+	bool operator<(const int& other) const {
+		return this->operator <(static_cast<long double>(other));
+	}
+
+	bool operator<(const LongDouble& other) const {
+		return this->operator <(other.val());
+	}
+
+	bool operator<(const long double& other) const {
+		return this->val() < other;
+	}
+
+	bool operator>(const int& other) const {
+		return this->operator >(static_cast<long double>(other));
+	}
+
+	bool operator>(const LongDouble& other) const {
+		return this->operator >(other.val());
+	}
+
+	bool operator>(const long double& other) const {
+		return this->val() > other;
+	}
+
+	bool operator>=(const int& other) const {
+		return this->operator >=(static_cast<long double>(other));
+	}
+
+	bool operator>=(const LongDouble& other) const {
+		return this->operator >=(other.val());
+	}
+
+	bool operator>=(const long double& other) const {
+		return this->val() >= other;
+	}
+
+	bool operator<=(const int& other) const {
+		return this->operator <=(static_cast<long double>(other));
+	}
+
+	bool operator<=(const LongDouble& other) const {
+		return this->operator <=(other.val());
+	}
+
+	bool operator<=(const long double& other) const {
+		return this->val() <= other;
+	}
+};
+}
+
+
+namespace std {
+template<>
+   struct numeric_limits<libnfp::LongDouble>
+   {
+     static _GLIBCXX_USE_CONSTEXPR bool is_specialized = true;
+
+     static _GLIBCXX_CONSTEXPR long double
+     min() _GLIBCXX_USE_NOEXCEPT { return __LDBL_MIN__; }
+
+     static _GLIBCXX_CONSTEXPR long double
+     max() _GLIBCXX_USE_NOEXCEPT { return __LDBL_MAX__; }
+
+#if __cplusplus >= 201103L
+     static constexpr long double
+     lowest() noexcept { return -__LDBL_MAX__; }
+#endif
+
+     static _GLIBCXX_USE_CONSTEXPR int digits = __LDBL_MANT_DIG__;
+     static _GLIBCXX_USE_CONSTEXPR int digits10 = __LDBL_DIG__;
+#if __cplusplus >= 201103L
+     static _GLIBCXX_USE_CONSTEXPR int max_digits10
+	 = std::numeric_limits<long double>::max_digits10;
+#endif
+     static _GLIBCXX_USE_CONSTEXPR bool is_signed = true;
+     static _GLIBCXX_USE_CONSTEXPR bool is_integer = false;
+     static _GLIBCXX_USE_CONSTEXPR bool is_exact = false;
+     static _GLIBCXX_USE_CONSTEXPR int radix = __FLT_RADIX__;
+
+     static _GLIBCXX_CONSTEXPR long double
+     epsilon() _GLIBCXX_USE_NOEXCEPT { return libnfp::NFP_EPSILON; }
+
+     static _GLIBCXX_CONSTEXPR long double
+     round_error() _GLIBCXX_USE_NOEXCEPT { return 0.5L; }
+
+     static _GLIBCXX_USE_CONSTEXPR int min_exponent = __LDBL_MIN_EXP__;
+     static _GLIBCXX_USE_CONSTEXPR int min_exponent10 = __LDBL_MIN_10_EXP__;
+     static _GLIBCXX_USE_CONSTEXPR int max_exponent = __LDBL_MAX_EXP__;
+     static _GLIBCXX_USE_CONSTEXPR int max_exponent10 = __LDBL_MAX_10_EXP__;
+
+     static _GLIBCXX_USE_CONSTEXPR bool has_infinity = __LDBL_HAS_INFINITY__;
+     static _GLIBCXX_USE_CONSTEXPR bool has_quiet_NaN = __LDBL_HAS_QUIET_NAN__;
+     static _GLIBCXX_USE_CONSTEXPR bool has_signaling_NaN = has_quiet_NaN;
+     static _GLIBCXX_USE_CONSTEXPR float_denorm_style has_denorm
+	= bool(__LDBL_HAS_DENORM__) ? denorm_present : denorm_absent;
+     static _GLIBCXX_USE_CONSTEXPR bool has_denorm_loss
+	= std::numeric_limits<long double>::has_denorm_loss;
+
+     static _GLIBCXX_CONSTEXPR long double
+     infinity() _GLIBCXX_USE_NOEXCEPT { return __builtin_huge_vall(); }
+
+     static _GLIBCXX_CONSTEXPR long double
+     quiet_NaN() _GLIBCXX_USE_NOEXCEPT { return __builtin_nanl(""); }
+
+     static _GLIBCXX_CONSTEXPR long double
+     signaling_NaN() _GLIBCXX_USE_NOEXCEPT { return __builtin_nansl(""); }
+
+     static _GLIBCXX_CONSTEXPR long double
+     denorm_min() _GLIBCXX_USE_NOEXCEPT { return __LDBL_DENORM_MIN__; }
+
+     static _GLIBCXX_USE_CONSTEXPR bool is_iec559
+	= has_infinity && has_quiet_NaN && has_denorm == denorm_present;
+     static _GLIBCXX_USE_CONSTEXPR bool is_bounded = true;
+     static _GLIBCXX_USE_CONSTEXPR bool is_modulo = false;
+
+     static _GLIBCXX_USE_CONSTEXPR bool traps = std::numeric_limits<long double>::traps;
+     static _GLIBCXX_USE_CONSTEXPR bool tinyness_before =
+    		 std::numeric_limits<long double>::tinyness_before;
+     static _GLIBCXX_USE_CONSTEXPR float_round_style round_style =
+						      round_to_nearest;
+   };
+}
+
+namespace boost {
+namespace numeric {
+	template<>
+	struct raw_converter<boost::numeric::conversion_traits<double, libnfp::LongDouble>>
+	{
+		typedef typename boost::numeric::conversion_traits<double, libnfp::LongDouble>::result_type   result_type   ;
+		typedef typename boost::numeric::conversion_traits<double, libnfp::LongDouble>::argument_type argument_type ;
+
+		static result_type low_level_convert ( argument_type s ) { return s.val() ; }
+	} ;
+}
+}
+
+namespace libnfp {
+
 typedef bm::number<bm::gmp_rational, bm::et_off> rational_t;
+#ifndef LIBNFP_USE_RATIONAL
+typedef LongDouble coord_t;
+#else
 typedef rational_t coord_t;
+#endif
+
+bool equals(const LongDouble& lhs, const LongDouble& rhs);
+bool equals(const rational_t& lhs, const rational_t& rhs);
+bool equals(const long double& lhs, const long double& rhs);
 
 const coord_t MAX_COORD = 999999999999999999;
 const coord_t MIN_COORD = std::numeric_limits<coord_t>::min();
-
-bool equals(const coord_t& lhs, const coord_t& rhs);
 
 class point_t {
 public:
@@ -80,68 +306,175 @@ public:
 
 typedef std::vector<std::vector<point_t>> nfp_t;
 
-inline bool larger(const coord_t& lhs, const coord_t& rhs) {
-	return lhs > rhs;
+
+inline long double toLongDouble(const LongDouble& c) {
+	return c.val();
 }
 
-inline bool smaller(const coord_t& lhs, const coord_t& rhs) {
-	return lhs < rhs;
+inline long double toLongDouble(const rational_t& c) {
+	return bm::numerator(c).convert_to<long double>() / bm::denominator(c).convert_to<long double>();
 }
 
-bool equals(const coord_t& lhs, const coord_t& rhs) {
-	return lhs == rhs;
+std::ostream& operator<<(std::ostream& os, const coord_t& p) {
+	os << toLongDouble(p);
+	return os;
 }
 
-inline double toDouble(const rational_t& c) {
-	return bm::numerator(c).convert_to<double>() / bm::denominator(c).convert_to<double>();
+std::istream& operator>>(std::istream& is, LongDouble& c) {
+	long double val;
+	is >> val;
+	c.setVal(val);
+	return is;
 }
 
 std::ostream& operator<<(std::ostream& os, const point_t& p) {
-	os << "{" << toDouble(p.x_) << "," << toDouble(p.y_) << "}";
+	os << "{" << toLongDouble(p.x_) << "," << toLongDouble(p.y_) << "}";
 	return os;
 }
 const point_t INVALID_POINT = {MAX_COORD, MAX_COORD};
 
 typedef bg::model::segment<point_t> segment_t;
-
-inline double c_sqrt(const coord_t& p) {
-	return sqrt(toDouble(p));
 }
 
-inline double c_acos(const coord_t& p) {
-	return acos(toDouble(p));
+inline long double acos(const libnfp::rational_t& r) {
+	return acos(libnfp::toLongDouble(r));
 }
+
+inline long double acos(const libnfp::LongDouble& ld) {
+	return acos(libnfp::toLongDouble(ld));
 }
+
+inline long double sqrt(const libnfp::rational_t& r) {
+	return sqrt(libnfp::toLongDouble(r));
+}
+
+inline long double sqrt(const libnfp::LongDouble& ld) {
+	return sqrt(libnfp::toLongDouble(ld));
+}
+
 BOOST_GEOMETRY_REGISTER_POINT_2D(libnfp::point_t, libnfp::coord_t, cs::cartesian, x_, y_)
+
 
 namespace boost {
 namespace geometry {
-template<>
-inline libnfp::coord_t
-length(libnfp::segment_t const& seg)
-{
-	libnfp::coord_t x = abs(seg.first.x_ - seg.second.x_);
-	libnfp::coord_t y = abs(seg.first.y_ - seg.second.y_);
-	libnfp::coord_t p = x*x + y*y;
+namespace math {
+namespace detail {
 
-	return libnfp::c_sqrt(p);
+template <>
+struct square_root<libnfp::LongDouble>
+{
+  typedef libnfp::LongDouble return_type;
+
+	static inline libnfp::LongDouble apply(libnfp::LongDouble const& a)
+  {
+        return std::sqrt(a.val());
+  }
+};
+
+template <>
+struct square_root<libnfp::rational_t>
+{
+  typedef libnfp::rational_t return_type;
+
+	static inline libnfp::rational_t apply(libnfp::rational_t const& a)
+  {
+        return std::sqrt(libnfp::toLongDouble(a));
+  }
+};
+
+template<>
+struct abs<libnfp::LongDouble>
+	{
+	static libnfp::LongDouble apply(libnfp::LongDouble const& value)
+			{
+				libnfp::LongDouble const zero = libnfp::LongDouble();
+					return value.val() < zero.val() ? -value.val() : value.val();
+			}
+	};
+
+template <>
+struct equals<libnfp::LongDouble, false>
+{
+	template<typename Policy>
+	static inline bool apply(libnfp::LongDouble const& lhs, libnfp::LongDouble const& rhs, Policy const& policy)
+  {
+		if(lhs.val() == rhs.val())
+			return true;
+
+	  return bg::math::detail::abs<libnfp::LongDouble>::apply(lhs.val() - rhs.val()) <=  policy.apply(lhs.val(), rhs.val()) * libnfp::NFP_EPSILON;
+  }
+};
+
+template <>
+struct smaller<libnfp::LongDouble>
+{
+	static inline bool apply(libnfp::LongDouble const& lhs, libnfp::LongDouble const& rhs)
+  {
+		if(lhs.val() == rhs.val() || bg::math::detail::abs<libnfp::LongDouble>::apply(lhs.val() - rhs.val()) <=  libnfp::NFP_EPSILON * std::max(lhs.val(), rhs.val()))
+			return false;
+
+	  return lhs < rhs;
+  }
+};
 }
-}}
+}
+}
+}
 
 namespace libnfp {
+inline bool smaller(const LongDouble& lhs, const LongDouble& rhs) {
+	return boost::geometry::math::detail::smaller<LongDouble>::apply(lhs, rhs);
+}
+
+inline bool larger(const LongDouble& lhs, const LongDouble& rhs) {
+  return smaller(rhs, lhs);
+}
+
+bool equals(const LongDouble& lhs, const LongDouble& rhs) {
+	if(lhs.val() == rhs.val())
+		return true;
+
+  return bg::math::detail::abs<libnfp::LongDouble>::apply(lhs.val() - rhs.val()) <=  libnfp::NFP_EPSILON * std::max(lhs.val(), rhs.val());
+}
+
+inline bool smaller(const rational_t& lhs, const rational_t& rhs) {
+	return lhs < rhs;
+}
+
+inline bool larger(const rational_t& lhs, const rational_t& rhs) {
+  return smaller(rhs, lhs);
+}
+
+bool equals(const rational_t& lhs, const rational_t& rhs) {
+	return lhs == rhs;
+}
+
+inline bool smaller(const long double& lhs, const long double& rhs) {
+	return lhs < rhs;
+}
+
+inline bool larger(const long double& lhs, const long double& rhs) {
+  return smaller(rhs, lhs);
+}
+
+
+bool equals(const long double& lhs, const long double& rhs) {
+	return lhs == rhs;
+}
+
 typedef bg::model::polygon<point_t, false, true> polygon_t;
 typedef bg::model::linestring<point_t> linestring_t;
 
 typedef typename polygon_t::ring_type::size_type psize_t;
 
-typedef bg::model::d2::point_xy<double> pointf_t;
+typedef bg::model::d2::point_xy<long double> pointf_t;
 typedef bg::model::segment<pointf_t> segmentf_t;
 typedef bg::model::polygon<pointf_t, false, true> polygonf_t;
 
 polygonf_t::ring_type convert(const polygon_t::ring_type& r) {
 	polygonf_t::ring_type rf;
 	for(const auto& pt : r) {
-		rf.push_back(pointf_t(toDouble(pt.x_), toDouble(pt.y_)));
+		rf.push_back(pointf_t(toLongDouble(pt.x_), toLongDouble(pt.y_)));
 	}
 	return rf;
 }
@@ -178,7 +511,7 @@ void write_svg(std::string const& filename,const std::vector<segment_t>& segment
 
     boost::geometry::svg_mapper<pointf_t> mapper(svg, 100, 100, "width=\"200mm\" height=\"200mm\" viewBox=\"-250 -250 500 500\"");
     for(const auto& seg : segments) {
-    	segmentf_t segf({toDouble(seg.first.x_), toDouble(seg.first.y_)}, {toDouble(seg.second.x_), toDouble(seg.second.y_)});
+    	segmentf_t segf({toLongDouble(seg.first.x_), toLongDouble(seg.first.y_)}, {toLongDouble(seg.second.x_), toLongDouble(seg.second.y_)});
     	mapper.add(segf);
     	mapper.map(segf, "fill-opacity:0.5;fill:rgb(153,204,0);stroke:rgb(153,204,0);stroke-width:2");
     }
@@ -258,6 +591,10 @@ bool operator==(const segment_t& lhs, const segment_t& rhs) {
 	return (lhs.first == rhs.first && lhs.second == rhs.second) || (lhs.first == rhs.second && lhs.second == rhs.first);
 }
 
+bool operator!=(const segment_t& lhs, const segment_t& rhs) {
+	return !operator==(lhs,rhs);
+}
+
 enum Alignment {
 	LEFT,
 	RIGHT,
@@ -268,7 +605,7 @@ point_t normalize(const point_t& pt) {
 	point_t norm = pt;
 	coord_t len = bg::length(segment_t{{0,0},pt});
 
-	if(len == 0)
+	if(len == 0.0L)
 		return {0,0};
 
 	norm.x_ /= len;
@@ -290,16 +627,16 @@ Alignment get_alignment(const segment_t& seg, const point_t& pt){
 	}
 }
 
-double get_inner_angle(const point_t& joint, const point_t& end1, const point_t& end2) {
+long double get_inner_angle(const point_t& joint, const point_t& end1, const point_t& end2) {
 	coord_t dx21 = end1.x_-joint.x_;
 	coord_t dx31 = end2.x_-joint.x_;
 	coord_t dy21 = end1.y_-joint.y_;
 	coord_t dy31 = end2.y_-joint.y_;
-	coord_t m12 = c_sqrt((dx21*dx21 + dy21*dy21));
-	coord_t m13 = c_sqrt((dx31*dx31 + dy31*dy31));
-	if(m12 == 0 || m13 == 0)
+	coord_t m12 = sqrt((dx21*dx21 + dy21*dy21));
+	coord_t m13 = sqrt((dx31*dx31 + dy31*dy31));
+	if(m12 == 0.0L || m13 == 0.0L)
 		return 0;
-	return c_acos( (dx21*dx31 + dy21*dy31) / (m12 * m13) );
+	return acos( (dx21*dx31 + dy21*dy31) / (m12 * m13) );
 }
 
 struct TouchingPoint {
@@ -324,7 +661,7 @@ struct TranslationVector {
 };
 
 std::ostream& operator<<(std::ostream& os, const TranslationVector& tv) {
-	os << "{" << tv.edge_ << " -> " << tv.vector_ << "}";
+	os << "{" << tv.edge_ << " -> " << tv.vector_ << "} = " << tv.fromA_;
 	return os;
 }
 
@@ -526,19 +863,30 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 			Alignment a2 = get_alignment({{0,0},normEdge}, normSecond);
 
 			if(a1 == a2 && a1 != ON) {
-				double df = get_inner_angle({0,0},normEdge, normFirst);
-				double ds = get_inner_angle({0,0},normEdge, normSecond);
-				point_t normIn = normalize(v.edge_.second - v.edge_.first);
+				long double df = get_inner_angle({0,0},normEdge, normFirst);
+				long double ds = get_inner_angle({0,0},normEdge, normSecond);
 
-				if(normIn == normalize(v.vector_)) {
-					if(equals(ds, df) || larger(ds, df)) {
+				if(equals(df, ds)) {
+					polygon_t::ring_type translated;
+					trans::translate_transformer<coord_t, 2, 2> translate(v.vector_.x_, v.vector_.y_);
+					boost::geometry::transform(ringB, translated, translate);
+					if(!bg::touches(translated, ringA)) {
 						discarded = true;
 						break;
 					}
 				} else {
-					if(smaller(ds, df)) {
-						discarded = true;
-						break;
+					point_t normIn = normalize(v.edge_.second - v.edge_.first);
+
+					if(normIn == normalize(v.vector_)) {
+						if(larger(ds, df)) {
+							discarded = true;
+							break;
+						}
+					} else {
+						if(smaller(ds, df)) {
+							discarded = true;
+							break;
+						}
 					}
 				}
 			}
@@ -569,7 +917,7 @@ TranslationVector trimVector(const polygon_t::ring_type& rA, const polygon_t::ri
 		segment_t segi;
 		for(const auto& pti : intersections) {
 			//bg::intersection is inclusive so we have to exclude exact point intersections
-			bool cont = false;
+			/*bool cont = false;
 			for(const auto& ptB : rB) {
 				if(pti == ptB) {
 					cont = true;
@@ -577,7 +925,7 @@ TranslationVector trimVector(const polygon_t::ring_type& rA, const polygon_t::ri
 				}
 			}
 			if(cont)
-				continue;
+				continue;*/
 			segi = segment_t(ptA,pti);
 			len = bg::length(segi);
 			if(smaller(len, shortest)) {
@@ -605,7 +953,7 @@ TranslationVector trimVector(const polygon_t::ring_type& rA, const polygon_t::ri
 		segment_t segi;
 		for(const auto& pti : intersections) {
 			//bg::intersection is inclusive so we have to exclude exact point intersections
-			bool cont = false;
+			/*bool cont = false;
 			for(const auto& ptA : rA) {
 				if(pti == ptA) {
 					cont = true;
@@ -613,7 +961,7 @@ TranslationVector trimVector(const polygon_t::ring_type& rA, const polygon_t::ri
 				}
 			}
 			if(cont)
-				continue;
+				continue;*/
 			segi = segment_t(ptB,pti);
 			len = bg::length(segi);
 			if(smaller(len, shortest)) {
@@ -629,20 +977,53 @@ TranslationVector trimVector(const polygon_t::ring_type& rA, const polygon_t::ri
 
 TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon_t::ring_type& rA,	const polygon_t::ring_type& rB, const std::set<TranslationVector>& tvs, TranslationVector& last) {
 	if(last.vector_ != INVALID_POINT) {
-		point_t later;
-		if(last.vector_ == (last.edge_.second - last.edge_.first)) {
-			later = last.edge_.second;
+		psize_t laterI = std::numeric_limits<psize_t>::max();
+		point_t previous = rA[0];
+		point_t next;
+
+		if(last.fromA_) {
+			for (psize_t i = 1; i < rA.size() + 1; ++i) {
+				if (i >= rA.size())
+					next = rA[i % rA.size() + 1];
+				else
+					next = rA[i];
+
+				segment_t candidate( previous, next );
+				if(candidate == last.edge_) {
+					laterI = i;
+					break;
+				}
+				previous = next;
+			}
+
+			if (laterI == std::numeric_limits<psize_t>::max()) {
+				point_t later;
+				if (last.vector_ == (last.edge_.second - last.edge_.first)) {
+					later = last.edge_.second;
+				} else {
+					later = last.edge_.first;
+				}
+
+				laterI = find_point(rA, later);
+			}
 		} else {
-			later = last.edge_.first;
+			point_t later;
+			if (last.vector_ == (last.edge_.second - last.edge_.first)) {
+				later = last.edge_.second;
+			} else {
+				later = last.edge_.first;
+			}
+
+			laterI = find_point(rA, later);
 		}
 
-		psize_t laterI = find_point(rA, later);
-		if(laterI == std::numeric_limits<psize_t>::max()) {
-			throw std::runtime_error("Internal error: can't find later point of last edge");
+		if (laterI == std::numeric_limits<psize_t>::max()) {
+			throw std::runtime_error(
+					"Internal error: Can't find later point of last edge");
 		}
-		point_t previous = later;
-		point_t next;
+
 		std::vector<segment_t> viableEdges;
+		previous = rA[laterI];
 		for(psize_t i = laterI + 1; i < rA.size() + laterI; ++i) {
 			if(i >= rA.size())
 				next = rA[i % rA.size() + 1];
@@ -662,23 +1043,23 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 					return trimmed;
 				}
 			}
-			for(auto& tv : tvs) {
-				if(!tv.fromA_) {
+			for (auto& tv : tvs) {
+				if (!tv.fromA_) {
 					point_t later;
-					if(tv.vector_ == (tv.edge_.second - tv.edge_.first)) {
+					if (tv.vector_ == (tv.edge_.second - tv.edge_.first)) {
 						later = tv.edge_.second;
-					} else if(tv.vector_ == (tv.edge_.first - tv.edge_.second)) {
+					} else if (tv.vector_ == (tv.edge_.first - tv.edge_.second)) {
 						later = tv.edge_.first;
 					} else
 						continue;
 
-					if(later == ve.first) {
+					if (later == ve.first) {
 						TranslationVector trimmed = trimVector(rA, rB, tv);
 						trans::translate_transformer<coord_t, 2, 2> translate(trimmed.vector_.x_, trimmed.vector_.y_);
 						segment_t translatedEdge;
 						boost::geometry::transform(tv.edge_, translatedEdge, translate);
-						for(const auto& ve : viableEdges) {
-							if(ve == translatedEdge) {
+						for (const auto& ve : viableEdges) {
+							if (ve == translatedEdge) {
 								TranslationVector newTv;
 								last = tv;
 								last.edge_ = ve;
@@ -688,7 +1069,7 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 						}
 
 						return trimmed;
-				}
+					}
 				}
 			}
 		}
@@ -864,15 +1245,16 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 		nfp.back().push_back(rB.front());
 
 		std::vector<TouchingPoint> touchers = findTouchingPoints(rA, rB);
+
 		if(touchers.empty()) {
 			throw std::runtime_error("Internal error: No touching points found");
 		}
 		std::set<TranslationVector> transVectors = findFeasibleTranslationVectors(rA, rB, touchers);
 
-		DEBUG_MSG("collected vectors", transVectors.size());
+		/*DEBUG_MSG("collected vectors", transVectors.size());
 		for(auto pt : transVectors) {
 			DEBUG_VAL(pt);
-		}
+		}*/
 
 		if(transVectors.empty()) {
 			return NO_LOOP;
@@ -883,6 +1265,10 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 			next = selectNextTranslationVector(pA, rA, rB, transVectors, last);
 		else {
 			next = *transVectors.begin();
+			if(trimVector(rA, rB, next).vector_ == point_t{-last.vector_.x_, -last.vector_.y_})
+				return NO_TRANSLATION;
+
+			last = next;
 		}
 		if(next.vector_ == INVALID_POINT)
 			return NO_TRANSLATION;
