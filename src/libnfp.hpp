@@ -37,7 +37,7 @@ namespace libnfp {
 
 using std::string;
 
-static const long double NFP_EPSILON=0.000001;
+static const long double NFP_EPSILON=0.00000001;
 
 class LongDouble {
 private:
@@ -250,7 +250,6 @@ namespace numeric {
 
 		static result_type low_level_convert ( argument_type s ) { return s.val() ; }
 	} ;
-
 }
 }
 
@@ -418,25 +417,7 @@ struct smaller<libnfp::LongDouble>
 }
 }
 
-
-/*
-namespace boost {
-namespace geometry {
-template<>
-inline libnfp::coord_t
-length(libnfp::segment_t const& seg)
-{
-	libnfp::coord_t x = abs(seg.first.x_ - seg.second.x_);
-	libnfp::coord_t y = abs(seg.first.y_ - seg.second.y_);
-	libnfp::coord_t p = x*x + y*y;
-
-	return libnfp::c_sqrt(p);
-}
-}}*/
-
 namespace libnfp {
-
-
 inline bool smaller(const LongDouble& lhs, const LongDouble& rhs) {
 	return boost::geometry::math::detail::smaller<LongDouble>::apply(lhs, rhs);
 }
