@@ -1,4 +1,4 @@
-//#define LIBNFP_USE_RATIONAL 1
+//#define LIBNFP_USE_RATIONAL
 #include "../src/libnfp.hpp"
 
 int main(int argc, char** argv) {
