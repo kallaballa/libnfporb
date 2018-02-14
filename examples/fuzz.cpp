@@ -1,3 +1,4 @@
+//#define LIBNFP_USE_RATIONAL 1
 #include "../src/libnfp.hpp"
 #include <random>
 

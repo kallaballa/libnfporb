@@ -256,7 +256,11 @@ namespace numeric {
 namespace libnfp {
 
 typedef bm::number<bm::gmp_rational, bm::et_off> rational_t;
+#ifndef LIBNFP_USE_RATIONAL
 typedef LongDouble coord_t;
+#else
+typedef rational_t coord_t;
+#endif
 
 bool equals(const LongDouble& lhs, const LongDouble& rhs);
 bool equals(const rational_t& lhs, const rational_t& rhs);
@@ -1247,10 +1251,10 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 		}
 		std::set<TranslationVector> transVectors = findFeasibleTranslationVectors(rA, rB, touchers);
 
-		DEBUG_MSG("collected vectors", transVectors.size());
+		/*DEBUG_MSG("collected vectors", transVectors.size());
 		for(auto pt : transVectors) {
 			DEBUG_VAL(pt);
-		}
+		}*/
 
 		if(transVectors.empty()) {
 			return NO_LOOP;
