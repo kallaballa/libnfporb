@@ -1,3 +1,4 @@
+//uncomment next line to use infinite precision (slow)
 //#define LIBNFP_USE_RATIONAL
 #include "../src/libnfp.hpp"
 #include <random>
@@ -42,7 +43,10 @@ int main(int argc, char** argv) {
 		rB.back() = rB.front();
 	}
 
-	nfp_t nfp = generateNFP(pA, pB);
+  //generate NFP of polygon A and polygon B and check the polygons for validity.
+  //When the third parameters is false validity check is skipped for a little performance increase
+	nfp_t nfp = generateNFP(pA, pB, true);
+
 	write_svg("nfp.svg",{pA,pB},nfp);
 	return 0;
 }
