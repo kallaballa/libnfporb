@@ -254,7 +254,6 @@ namespace numeric {
 }
 }
 
-
 namespace libnfp {
 
 typedef bm::number<bm::gmp_rational, bm::et_off> rational_t;
@@ -263,7 +262,6 @@ typedef LongDouble coord_t;
 bool equals(const LongDouble& lhs, const LongDouble& rhs);
 bool equals(const rational_t& lhs, const rational_t& rhs);
 bool equals(const long double& lhs, const long double& rhs);
-
 
 const coord_t MAX_COORD = 999999999999999999;
 const coord_t MIN_COORD = std::numeric_limits<coord_t>::min();
@@ -608,6 +606,10 @@ bool operator==(const segment_t& lhs, const segment_t& rhs) {
 	return (lhs.first == rhs.first && lhs.second == rhs.second) || (lhs.first == rhs.second && lhs.second == rhs.first);
 }
 
+bool operator!=(const segment_t& lhs, const segment_t& rhs) {
+	return !operator==(lhs,rhs);
+}
+
 enum Alignment {
 	LEFT,
 	RIGHT,
@@ -674,7 +676,7 @@ struct TranslationVector {
 };
 
 std::ostream& operator<<(std::ostream& os, const TranslationVector& tv) {
-	os << "{" << tv.edge_ << " -> " << tv.vector_ << "}";
+	os << "{" << tv.edge_ << " -> " << tv.vector_ << "} = " << tv.fromA_;
 	return os;
 }
 
@@ -878,17 +880,28 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 			if(a1 == a2 && a1 != ON) {
 				long double df = get_inner_angle({0,0},normEdge, normFirst);
 				long double ds = get_inner_angle({0,0},normEdge, normSecond);
-				point_t normIn = normalize(v.edge_.second - v.edge_.first);
 
-				if(normIn == normalize(v.vector_)) {
-					if(equals(ds, df) || larger(ds, df)) {
+				if(equals(df, ds)) {
+					polygon_t::ring_type translated;
+					trans::translate_transformer<coord_t, 2, 2> translate(v.vector_.x_, v.vector_.y_);
+					boost::geometry::transform(ringB, translated, translate);
+					if(!bg::touches(translated, ringA)) {
 						discarded = true;
 						break;
 					}
 				} else {
-					if(smaller(ds, df)) {
-						discarded = true;
-						break;
+					point_t normIn = normalize(v.edge_.second - v.edge_.first);
+
+					if(normIn == normalize(v.vector_)) {
+						if(larger(ds, df)) {
+							discarded = true;
+							break;
+						}
+					} else {
+						if(smaller(ds, df)) {
+							discarded = true;
+							break;
+						}
 					}
 				}
 			}
@@ -919,7 +932,7 @@ TranslationVector trimVector(const polygon_t::ring_type& rA, const polygon_t::ri
 		segment_t segi;
 		for(const auto& pti : intersections) {
 			//bg::intersection is inclusive so we have to exclude exact point intersections
-			bool cont = false;
+			/*bool cont = false;
 			for(const auto& ptB : rB) {
 				if(pti == ptB) {
 					cont = true;
@@ -927,7 +940,7 @@ TranslationVector trimVector(const polygon_t::ring_type& rA, const polygon_t::ri
 				}
 			}
 			if(cont)
-				continue;
+				continue;*/
 			segi = segment_t(ptA,pti);
 			len = bg::length(segi);
 			if(smaller(len, shortest)) {
@@ -955,7 +968,7 @@ TranslationVector trimVector(const polygon_t::ring_type& rA, const polygon_t::ri
 		segment_t segi;
 		for(const auto& pti : intersections) {
 			//bg::intersection is inclusive so we have to exclude exact point intersections
-			bool cont = false;
+			/*bool cont = false;
 			for(const auto& ptA : rA) {
 				if(pti == ptA) {
 					cont = true;
@@ -963,7 +976,7 @@ TranslationVector trimVector(const polygon_t::ring_type& rA, const polygon_t::ri
 				}
 			}
 			if(cont)
-				continue;
+				continue;*/
 			segi = segment_t(ptB,pti);
 			len = bg::length(segi);
 			if(smaller(len, shortest)) {
@@ -979,20 +992,53 @@ TranslationVector trimVector(const polygon_t::ring_type& rA, const polygon_t::ri
 
 TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon_t::ring_type& rA,	const polygon_t::ring_type& rB, const std::set<TranslationVector>& tvs, TranslationVector& last) {
 	if(last.vector_ != INVALID_POINT) {
-		point_t later;
-		if(last.vector_ == (last.edge_.second - last.edge_.first)) {
-			later = last.edge_.second;
+		psize_t laterI = std::numeric_limits<psize_t>::max();
+		point_t previous = rA[0];
+		point_t next;
+
+		if(last.fromA_) {
+			for (psize_t i = 1; i < rA.size() + 1; ++i) {
+				if (i >= rA.size())
+					next = rA[i % rA.size() + 1];
+				else
+					next = rA[i];
+
+				segment_t candidate( previous, next );
+				if(candidate == last.edge_) {
+					laterI = i;
+					break;
+				}
+				previous = next;
+			}
+
+			if (laterI == std::numeric_limits<psize_t>::max()) {
+				point_t later;
+				if (last.vector_ == (last.edge_.second - last.edge_.first)) {
+					later = last.edge_.second;
+				} else {
+					later = last.edge_.first;
+				}
+
+				laterI = find_point(rA, later);
+			}
 		} else {
-			later = last.edge_.first;
+			point_t later;
+			if (last.vector_ == (last.edge_.second - last.edge_.first)) {
+				later = last.edge_.second;
+			} else {
+				later = last.edge_.first;
+			}
+
+			laterI = find_point(rA, later);
 		}
 
-		psize_t laterI = find_point(rA, later);
-		if(laterI == std::numeric_limits<psize_t>::max()) {
-			throw std::runtime_error("Internal error: can't find later point of last edge");
+		if (laterI == std::numeric_limits<psize_t>::max()) {
+			throw std::runtime_error(
+					"Internal error: Can't find later point of last edge");
 		}
-		point_t previous = later;
-		point_t next;
+
 		std::vector<segment_t> viableEdges;
+		previous = rA[laterI];
 		for(psize_t i = laterI + 1; i < rA.size() + laterI; ++i) {
 			if(i >= rA.size())
 				next = rA[i % rA.size() + 1];
@@ -1012,23 +1058,23 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 					return trimmed;
 				}
 			}
-			for(auto& tv : tvs) {
-				if(!tv.fromA_) {
+			for (auto& tv : tvs) {
+				if (!tv.fromA_) {
 					point_t later;
-					if(tv.vector_ == (tv.edge_.second - tv.edge_.first)) {
+					if (tv.vector_ == (tv.edge_.second - tv.edge_.first)) {
 						later = tv.edge_.second;
-					} else if(tv.vector_ == (tv.edge_.first - tv.edge_.second)) {
+					} else if (tv.vector_ == (tv.edge_.first - tv.edge_.second)) {
 						later = tv.edge_.first;
 					} else
 						continue;
 
-					if(later == ve.first) {
+					if (later == ve.first) {
 						TranslationVector trimmed = trimVector(rA, rB, tv);
 						trans::translate_transformer<coord_t, 2, 2> translate(trimmed.vector_.x_, trimmed.vector_.y_);
 						segment_t translatedEdge;
 						boost::geometry::transform(tv.edge_, translatedEdge, translate);
-						for(const auto& ve : viableEdges) {
-							if(ve == translatedEdge) {
+						for (const auto& ve : viableEdges) {
+							if (ve == translatedEdge) {
 								TranslationVector newTv;
 								last = tv;
 								last.edge_ = ve;
@@ -1038,7 +1084,7 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 						}
 
 						return trimmed;
-				}
+					}
 				}
 			}
 		}
@@ -1214,6 +1260,7 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 		nfp.back().push_back(rB.front());
 
 		std::vector<TouchingPoint> touchers = findTouchingPoints(rA, rB);
+
 		if(touchers.empty()) {
 			throw std::runtime_error("Internal error: No touching points found");
 		}
@@ -1233,6 +1280,10 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 			next = selectNextTranslationVector(pA, rA, rB, transVectors, last);
 		else {
 			next = *transVectors.begin();
+			if(trimVector(rA, rB, next).vector_ == point_t{-last.vector_.x_, -last.vector_.y_})
+				return NO_TRANSLATION;
+
+			last = next;
 		}
 		if(next.vector_ == INVALID_POINT)
 			return NO_TRANSLATION;
