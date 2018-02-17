@@ -533,7 +533,7 @@ void write_svg(std::string const& filename,	const polygon_t& p, const polygon_t:
 void write_svg(std::string const& filename,	typename std::vector<polygon_t> const& polygons) {
 	std::ofstream svg(filename.c_str());
 
-	boost::geometry::svg_mapper<pointf_t> mapper(svg, 100, 100,	"width=\"200mm\" height=\"200mm\" viewBox=\"-250 -250 500 500\"");
+	boost::geometry::svg_mapper<pointf_t> mapper(svg, 100, 100, "width=\"200mm\" height=\"200mm\" viewBox=\"-250 -250 500 500\"");
 	for (auto p : polygons) {
 		auto pf  = convert(p);
 		mapper.add(pf);
@@ -1263,6 +1263,37 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 	return LOOP;
 }
 
+void removeCoLinear(polygon_t::ring_type& r) {
+	assert(r.size() > 2);
+	psize_t nextI;
+	psize_t prevI = 0;
+	segment_t segment(r[r.size() - 2], r[0]);
+	polygon_t::ring_type newR;
+
+	for (psize_t i = 1; i < r.size() + 2; ++i) {
+		if (i >= r.size())
+			nextI = i % r.size() + 1;
+		else
+			nextI = i;
+
+		if (get_alignment(segment, r[nextI]) != ON) {
+			newR.push_back(r[prevI]);
+		}
+		segment = {segment.second, r[nextI]};
+		prevI = nextI;
+	}
+
+	r = newR;
+}
+
+void removeCoLinear(polygon_t& p) {
+	removeCoLinear(p.outer());
+	for (auto& r : p.inners())
+		removeCoLinear(r);
+}
+
+
+
 nfp_t generateNFP(polygon_t& pA, polygon_t& pB, const bool checkValidity = true) {
 	if(checkValidity)  {
 		std::string reason;
@@ -1272,6 +1303,8 @@ nfp_t generateNFP(polygon_t& pA, polygon_t& pB, const bool checkValidity = true)
 		if(!bg::is_valid(pB, reason))
 			throw std::runtime_error("Polygon B is invalid: " + reason);
 	}
+	removeCoLinear(pA);
+	removeCoLinear(pB);
 	nfp_t nfp;
 
 #ifdef NFP_DEBUG
