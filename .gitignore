@@ -14,3 +14,7 @@ perf.data
 perf.data.old
 testfuzz.log
 test.log
+examples/isvalid
+testgen.log
+testgenfuzz.log
+
