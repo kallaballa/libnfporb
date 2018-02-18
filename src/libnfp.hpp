@@ -463,7 +463,8 @@ bool equals(const long double& lhs, const long double& rhs) {
 }
 
 typedef bg::model::polygon<point_t, false, true> polygon_t;
-typedef std::vector<polygon_t::ring_type> nfp_t;
+typedef bg::model::linestring<point_t> linestring_t;
+typedef std::vector<linestring_t> nfp_t;
 typedef bg::model::linestring<point_t> linestring_t;
 
 typedef typename polygon_t::ring_type::size_type psize_t;
@@ -1017,7 +1018,7 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 
 		std::vector<segment_t> viableEdges;
 		previous = rA[laterI];
-		for(psize_t i = laterI + 1; i < rA.size() + laterI - 1; ++i) {
+		for(psize_t i = laterI + 1; i < rA.size() + laterI; ++i) {
 			if(i >= rA.size())
 				next = rA[i % rA.size() + 1];
 			else
@@ -1217,10 +1218,11 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 
 	//generate the nfp for the ring
 	while(startAvailable) {
+		DEBUG_VAL(cnt);
 		//use first point of rB as reference
 		nfp.back().push_back(rB.front());
-		if(cnt == 5)
-			std::cerr << "bp" << std::endl;
+		if(cnt == 13)
+			std::cerr << "";
 
 		std::vector<TouchingPoint> touchers = findTouchingPoints(rA, rB);
 
@@ -1260,8 +1262,10 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 #endif
 
 		++cnt;
-		if(referenceStart == rB.front()) {
-			startAvailable = false;
+		for(auto& ls: nfp) {
+			if(bg::touches(ls, rB.front())) {
+				startAvailable = false;
+			}
 		}
 	}
 	return LOOP;
@@ -1326,10 +1330,10 @@ nfp_t generateNFP(polygon_t& pA, polygon_t& pB, const bool checkValidity = true)
 	std::vector<psize_t> ptyaminI = find_minimum_y(pA);
 	std::vector<psize_t> ptybmaxI = find_maximum_y(pB);
 
-	point_t pAstart = pA.outer()[ptyaminI.front()];
-	point_t pBstart = pB.outer()[ptybmaxI.front()];
+	point_t pAstart;
+	point_t pBstart;
 
-	if(ptyaminI.size() > 1 && ptybmaxI.size() > 1) {
+	if(ptyaminI.size() > 1 || ptybmaxI.size() > 1) {
 		//find right-most of A and left-most of B to prevent double connection at start
 		coord_t maxX = MIN_COORD;
 		psize_t iRightMost = 0;
