@@ -966,11 +966,24 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 
 static TranslationVector beforeLast;
 
-TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon_t::ring_type& rA,	const polygon_t::ring_type& rB, const std::set<TranslationVector>& tvs, const TranslationVector& last) {
-	std::cerr << "last: " << last << std::endl;
+bool find(const std::vector<TranslationVector>& h, const TranslationVector& tv) {
+	for(const auto& htv : h) {
+		if(htv.edge_ == tv.edge_)
+			return true;
+	}
+	return false;
+}
 
+TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon_t::ring_type& rA,	const polygon_t::ring_type& rB, const std::set<TranslationVector>& tvs, const std::vector<TranslationVector>& history) {
+	if(!history.empty()) {
+		TranslationVector last = history.back();
+		std::vector<TranslationVector> historyCopy = history;
+		if(historyCopy.size() >= 2) {
+			historyCopy.erase(historyCopy.end() - 1);
+			historyCopy.erase(historyCopy.end() - 1);
+		}
+		std::cerr << "last: " << last << std::endl;
 
-	if(last.vector_ != INVALID_POINT) {
 		psize_t laterI = std::numeric_limits<psize_t>::max();
 		point_t previous = rA[0];
 		point_t next;
@@ -1031,15 +1044,17 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 //		auto rng = std::default_random_engine {};
 //		std::shuffle(std::begin(viableEdges), std::end(viableEdges), rng);
 		for(const auto& ve: viableEdges) {
-			for(auto& tv : tvs) {
-				if((tv.fromA_ && (normalize(tv.vector_) == normalize(ve.second - ve.first))) && tv.edge_ != last.edge_ && tv.edge_ != beforeLast.edge_) {
+			std::cerr << "nextTv" << std::endl;
+			for(const auto& tv : tvs) {
+				std::cerr << ve << " -> " << tv.vector_ << " " << normalize(tv.vector_) << "==" << normalize(ve.second - ve.first) << std::endl;
+				if((tv.fromA_ && (normalize(tv.vector_) == normalize(ve.second - ve.first))) && tv.edge_ != last.edge_ && !find(historyCopy, tv)) {
 					return tv;
 				}
 			}
-			for (auto& tv : tvs) {
+			for (const auto& tv : tvs) {
 				if (!tv.fromA_) {
 					point_t later;
-					if (tv.vector_ == (tv.edge_.second - tv.edge_.first) && tv.edge_ != last.edge_ && tv.edge_ != beforeLast.edge_) {
+					if (tv.vector_ == (tv.edge_.second - tv.edge_.first) && tv.edge_ != last.edge_) {
 						later = tv.edge_.second;
 					} else if (tv.vector_ == (tv.edge_.first - tv.edge_.second)) {
 						later = tv.edge_.first;
@@ -1053,6 +1068,30 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 			}
 		}
 
+		for(const auto& ve: viableEdges) {
+			std::cerr << "nextTv" << std::endl;
+			for(const auto& tv : tvs) {
+				std::cerr << ve << " -> " << tv.vector_ << " " << normalize(tv.vector_) << "==" << normalize(ve.second - ve.first) << std::endl;
+				if((tv.fromA_ && (normalize(tv.vector_) == normalize(ve.second - ve.first))) && tv.edge_ != last.edge_) {
+					return tv;
+				}
+			}
+			for (const auto& tv : tvs) {
+				if (!tv.fromA_) {
+					point_t later;
+					if (tv.vector_ == (tv.edge_.second - tv.edge_.first) && tv.edge_ != last.edge_) {
+						later = tv.edge_.second;
+					} else if (tv.vector_ == (tv.edge_.first - tv.edge_.second)) {
+						later = tv.edge_.first;
+					} else
+						continue;
+
+					if (later == ve.first || later == ve.second) {
+						return tv;
+					}
+				}
+			}
+		}
 		TranslationVector tv;
 		tv.vector_ = INVALID_POINT;
 		return tv;
@@ -1236,8 +1275,7 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 	if(inNfp(referenceStart, nfp)) {
 		return NO_LOOP;
 	}
-	TranslationVector last;
-	last.vector_ = INVALID_POINT;
+	std::vector<TranslationVector> history;
 
 	//generate the nfp for the ring
 	while(startAvailable) {
@@ -1265,7 +1303,7 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 			return NO_LOOP;
 		}
 
-		TranslationVector next = selectNextTranslationVector(pA, rA, rB, transVectors, last);
+		TranslationVector next = selectNextTranslationVector(pA, rA, rB, transVectors, history);
 
 		if(next.vector_ == INVALID_POINT)
 			return NO_TRANSLATION;
@@ -1274,8 +1312,8 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 
 		TranslationVector trimmed = trimVector(rA, rB, next);
 		DEBUG_MSG("trimmed", trimmed);
-		beforeLast = last;
-		last = next;
+
+		history.push_back(next);
 
 		polygon_t::ring_type nextRB;
 		boost::geometry::transform(rB, nextRB, trans::translate_transformer<coord_t, 2, 2>(trimmed.vector_.x_, trimmed.vector_.y_));
@@ -1286,7 +1324,7 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 #endif
 
 		++cnt;
-		if(rB.front() == referenceStart) {
+		if(referenceStart == rB.front()) {
 			startAvailable = false;
 		}
 	}
