@@ -9,6 +9,7 @@
 #include <vector>
 #include <set>
 #include <exception>
+#include <random>
 
 #include <boost/multiprecision/gmp.hpp>
 #include <boost/multiprecision/number.hpp>
@@ -463,8 +464,7 @@ bool equals(const long double& lhs, const long double& rhs) {
 }
 
 typedef bg::model::polygon<point_t, false, true> polygon_t;
-typedef bg::model::linestring<point_t> linestring_t;
-typedef std::vector<linestring_t> nfp_t;
+typedef std::vector<polygon_t::ring_type> nfp_t;
 typedef bg::model::linestring<point_t> linestring_t;
 
 typedef typename polygon_t::ring_type::size_type psize_t;
@@ -964,7 +964,7 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 	return vectors;
 }
 
-
+static TranslationVector beforeLast;
 
 TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon_t::ring_type& rA,	const polygon_t::ring_type& rB, const std::set<TranslationVector>& tvs, const TranslationVector& last) {
 	std::cerr << "last: " << last << std::endl;
@@ -1028,16 +1028,18 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 			previous = next;
 		}
 
+//		auto rng = std::default_random_engine {};
+//		std::shuffle(std::begin(viableEdges), std::end(viableEdges), rng);
 		for(const auto& ve: viableEdges) {
 			for(auto& tv : tvs) {
-				if((tv.fromA_ && (normalize(tv.vector_) == normalize(ve.second - ve.first))) && tv.edge_ != last.edge_) {
+				if((tv.fromA_ && (normalize(tv.vector_) == normalize(ve.second - ve.first))) && tv.edge_ != last.edge_ && tv.edge_ != beforeLast.edge_) {
 					return tv;
 				}
 			}
 			for (auto& tv : tvs) {
 				if (!tv.fromA_) {
 					point_t later;
-					if (tv.vector_ == (tv.edge_.second - tv.edge_.first) && tv.edge_ != last.edge_) {
+					if (tv.vector_ == (tv.edge_.second - tv.edge_.first) && tv.edge_ != last.edge_ && tv.edge_ != beforeLast.edge_) {
 						later = tv.edge_.second;
 					} else if (tv.vector_ == (tv.edge_.first - tv.edge_.second)) {
 						later = tv.edge_.first;
@@ -1045,9 +1047,7 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 						continue;
 
 					if (later == ve.first || later == ve.second) {
-						TranslationVector newTv = tv;
-						newTv.fromA_ = true;
-						return newTv;
+						return tv;
 					}
 				}
 			}
@@ -1098,8 +1098,28 @@ enum SearchStartResult {
 };
 
 SearchStartResult searchStartTranslation(polygon_t::ring_type& rA, const polygon_t::ring_type& rB, const nfp_t& nfp,const bool& inside, point_t& result) {
-	for(psize_t i = 0; i < rA.size() -1; i++) {
-		auto& ptA = rA[i];
+	psize_t firstUnmarked = 0;
+	bool markedFound = false;
+	for(psize_t i = 0; i < rA.size(); i++) {
+		if(!markedFound) {
+			if(rA[i].marked_) {
+				markedFound = true;
+			}
+		} else {
+			if(!rA[i].marked_) {
+				firstUnmarked = i;
+				break;
+			}
+		}
+	}
+	for(psize_t i = firstUnmarked; i < rA.size() + firstUnmarked -1; i++) {
+		psize_t index;
+		if (i >= rA.size())
+			index = i % rA.size() + 1;
+		else
+			index = i;
+
+		auto& ptA = rA[index];
 
 		if(ptA.marked_)
 			continue;
@@ -1146,7 +1166,7 @@ SearchStartResult searchStartTranslation(polygon_t::ring_type& rA, const polygon
 				return FOUND;
 			}
 
-			const point_t& nextPtA = rA[i + 1];
+			const point_t& nextPtA = rA[index + 1];
 			TranslationVector slideVector;
 			slideVector.vector_ = nextPtA - ptA;
 			slideVector.edge_ = {ptA, nextPtA};
@@ -1213,6 +1233,9 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 	bool startAvailable = true;
 	psize_t cnt = 0;
 	point_t referenceStart = rB.front();
+	if(inNfp(referenceStart, nfp)) {
+		return NO_LOOP;
+	}
 	TranslationVector last;
 	last.vector_ = INVALID_POINT;
 
@@ -1251,6 +1274,7 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 
 		TranslationVector trimmed = trimVector(rA, rB, next);
 		DEBUG_MSG("trimmed", trimmed);
+		beforeLast = last;
 		last = next;
 
 		polygon_t::ring_type nextRB;
@@ -1262,10 +1286,8 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 #endif
 
 		++cnt;
-		for(auto& ls: nfp) {
-			if(bg::touches(ls, rB.front())) {
-				startAvailable = false;
-			}
+		if(rB.front() == referenceStart) {
+			startAvailable = false;
 		}
 	}
 	return LOOP;
@@ -1300,11 +1322,7 @@ void removeCoLinear(polygon_t& p) {
 		removeCoLinear(r);
 }
 
-
-
 nfp_t generateNFP(polygon_t& pA, polygon_t& pB, const bool checkValidity = true) {
-	removeCoLinear(pA);
-	removeCoLinear(pB);
 	removeCoLinear(pA);
 	removeCoLinear(pB);
 
@@ -1363,10 +1381,14 @@ nfp_t generateNFP(polygon_t& pA, polygon_t& pB, const bool checkValidity = true)
 
 	nfp.push_back({});
 	point_t transB = {pAstart - pBstart};
-	if(slide(pA, pA.outer(), pB.outer(), nfp, transB) != LOOP) {
-		throw std::runtime_error("Unable to complete outer nfp loop");
+	SlideResult sr;
+	while((sr = slide(pA, pA.outer(), pB.outer(), nfp, transB)) != LOOP) {
+		if(sr == NO_LOOP)
+			throw std::runtime_error("Unable to complete outer nfp loop");
+		else if(searchStartTranslation(pA.outer(), pB.outer(), nfp, false, transB) != FOUND)
+			break;
 	}
-	nfp.push_back({});
+	return nfp;
 	DEBUG_VAL("##### outer #####");
 	point_t startTrans;
   while(true) {
