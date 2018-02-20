@@ -756,10 +756,11 @@ TranslationVector trimVector(const polygon_t::ring_type& rA, const polygon_t::ri
 		projection.push_back(ptA);
 		projection.push_back(translated);
 		std::vector<point_t> intersections;
-		if(bg::touches(projection, rB)) {
+		bg::intersection(rB, projection, intersections);
+		if(bg::touches(projection, rB) && intersections.size() < 2) {
 			continue;
 		}
-		bg::intersection(rB, projection, intersections);
+
 		//find shortest intersection
 		coord_t len;
 		segment_t segi;
@@ -784,10 +785,10 @@ TranslationVector trimVector(const polygon_t::ring_type& rA, const polygon_t::ri
 		projection.push_back(ptB);
 		projection.push_back(translated);
 		std::vector<point_t> intersections;
-		if(bg::touches(projection, rA)) {
+		bg::intersection(rA, projection, intersections);
+		if(bg::touches(projection, rA) && intersections.size() < 2) {
 			continue;
 		}
-		bg::intersection(rA, projection, intersections);
 
 		//find shortest intersection
 		coord_t len;
@@ -919,7 +920,7 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 	std::set<TranslationVector> vectors;
 	for(const auto& v : potentialVectors) {
 		bool discarded = false;
-		for(const auto& sp : touchEdges) {
+	/*	for(const auto& sp : touchEdges) {
 			point_t normEdge = normalize(v.edge_.second - v.edge_.first);
 			point_t normFirst = normalize(sp.first.second - sp.first.first);
 			point_t normSecond = normalize(sp.second.second - sp.second.first);
@@ -932,16 +933,16 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 				long double ds = get_inner_angle({0,0},normEdge, normSecond);
 
 				point_t normIn = normalize(v.edge_.second - v.edge_.first);
-				if (equals(df, ds)) {
+				if (equals(df, ds)) {*/
 					TranslationVector trimmed = trimVector(ringA,ringB, v);
 					polygon_t::ring_type translated;
 					trans::translate_transformer<coord_t, 2, 2> translate(trimmed.vector_.x_,	trimmed.vector_.y_);
 					boost::geometry::transform(ringB, translated, translate);
-					if (!(bg::intersects(translated, ringA) && !bg::overlaps(translated, ringA) && !bg::overlaps(ringA, translated) && !bg::covered_by(translated, ringA) && !bg::covered_by(ringA, translated))) {
+					if (!(bg::intersects(translated, ringA) && !bg::overlaps(translated, ringA) && !bg::covered_by(translated, ringA) && !bg::covered_by(ringA, translated))) {
 						discarded = true;
-						break;
+						//break;
 					}
-				} else {
+	/*			} else {
 
 					if (normIn == normalize(v.vector_)) {
 						if (larger(ds, df)) {
@@ -956,7 +957,7 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 					}
 				}
 			}
-		}
+		}*/
 		if(!discarded)
 			vectors.insert(v);
 	}
