@@ -911,7 +911,6 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 			touchEdges.push_back({a2, b1});
 			touchEdges.push_back({a1, b2});
 			touchEdges.push_back({a2, b2});
-			std::cerr << "inserted:" << TranslationVector{vertexA - vertexB, {vertexA, vertexB}, false} << std::endl;
 			potentialVectors.insert({vertexA - vertexB, {vertexA, vertexB}, false});
 		}
 	}
@@ -938,7 +937,7 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 					polygon_t::ring_type translated;
 					trans::translate_transformer<coord_t, 2, 2> translate(trimmed.vector_.x_,	trimmed.vector_.y_);
 					boost::geometry::transform(ringB, translated, translate);
-					if (!(bg::intersects(translated, ringA) && !bg::overlaps(translated, ringA) && !bg::covered_by(translated, ringA) && !bg::covered_by(ringA, translated))) {
+					if (!(bg::intersects(translated, ringA) && !bg::overlaps(translated, ringA) && !bg::overlaps(ringA, translated) && !bg::covered_by(translated, ringA) && !bg::covered_by(ringA, translated))) {
 						discarded = true;
 						break;
 					}
@@ -981,6 +980,8 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 		if(historyCopy.size() >= 2) {
 			historyCopy.erase(historyCopy.end() - 1);
 			historyCopy.erase(historyCopy.end() - 1);
+		} else {
+			historyCopy.clear();
 		}
 		std::cerr << "last: " << last << std::endl;
 
@@ -1043,10 +1044,10 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 
 //		auto rng = std::default_random_engine {};
 //		std::shuffle(std::begin(viableEdges), std::end(viableEdges), rng);
+
+		//search with consulting the history to prevent oscillation
 		for(const auto& ve: viableEdges) {
-			std::cerr << "nextTv" << std::endl;
 			for(const auto& tv : tvs) {
-				std::cerr << ve << " -> " << tv.vector_ << " " << normalize(tv.vector_) << "==" << normalize(ve.second - ve.first) << std::endl;
 				if((tv.fromA_ && (normalize(tv.vector_) == normalize(ve.second - ve.first))) && tv.edge_ != last.edge_ && !find(historyCopy, tv)) {
 					return tv;
 				}
@@ -1068,10 +1069,9 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 			}
 		}
 
+		//search again without the history
 		for(const auto& ve: viableEdges) {
-			std::cerr << "nextTv" << std::endl;
 			for(const auto& tv : tvs) {
-				std::cerr << ve << " -> " << tv.vector_ << " " << normalize(tv.vector_) << "==" << normalize(ve.second - ve.first) << std::endl;
 				if((tv.fromA_ && (normalize(tv.vector_) == normalize(ve.second - ve.first))) && tv.edge_ != last.edge_) {
 					return tv;
 				}
@@ -1092,6 +1092,31 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 				}
 			}
 		}
+
+		//search again without the history and without checking last edge
+		for(const auto& ve: viableEdges) {
+			for(const auto& tv : tvs) {
+				if((tv.fromA_ && (normalize(tv.vector_) == normalize(ve.second - ve.first)))) {
+					return tv;
+				}
+			}
+			for (const auto& tv : tvs) {
+				if (!tv.fromA_) {
+					point_t later;
+					if (tv.vector_ == (tv.edge_.second - tv.edge_.first)) {
+						later = tv.edge_.second;
+					} else if (tv.vector_ == (tv.edge_.first - tv.edge_.second)) {
+						later = tv.edge_.first;
+					} else
+						continue;
+
+					if (later == ve.first || later == ve.second) {
+						return tv;
+					}
+				}
+			}
+		}
+
 		TranslationVector tv;
 		tv.vector_ = INVALID_POINT;
 		return tv;
@@ -1137,21 +1162,7 @@ enum SearchStartResult {
 };
 
 SearchStartResult searchStartTranslation(polygon_t::ring_type& rA, const polygon_t::ring_type& rB, const nfp_t& nfp,const bool& inside, point_t& result) {
-	psize_t firstUnmarked = 0;
-	bool markedFound = false;
-	for(psize_t i = 0; i < rA.size(); i++) {
-		if(!markedFound) {
-			if(rA[i].marked_) {
-				markedFound = true;
-			}
-		} else {
-			if(!rA[i].marked_) {
-				firstUnmarked = i;
-				break;
-			}
-		}
-	}
-	for(psize_t i = firstUnmarked; i < rA.size() + firstUnmarked -1; i++) {
+	for(psize_t i = 0; i < rA.size() - 1; i++) {
 		psize_t index;
 		if (i >= rA.size())
 			index = i % rA.size() + 1;
@@ -1205,7 +1216,7 @@ SearchStartResult searchStartTranslation(polygon_t::ring_type& rA, const polygon
 				return FOUND;
 			}
 
-			const point_t& nextPtA = rA[index + 1];
+			point_t nextPtA = rA[index + 1];
 			TranslationVector slideVector;
 			slideVector.vector_ = nextPtA - ptA;
 			slideVector.edge_ = {ptA, nextPtA};
@@ -1272,9 +1283,6 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 	bool startAvailable = true;
 	psize_t cnt = 0;
 	point_t referenceStart = rB.front();
-	if(inNfp(referenceStart, nfp)) {
-		return NO_LOOP;
-	}
 	std::vector<TranslationVector> history;
 
 	//generate the nfp for the ring
@@ -1282,7 +1290,7 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 		DEBUG_VAL(cnt);
 		//use first point of rB as reference
 		nfp.back().push_back(rB.front());
-		if(cnt == 13)
+		if(cnt == 15)
 			std::cerr << "";
 
 		std::vector<TouchingPoint> touchers = findTouchingPoints(rA, rB);
@@ -1419,14 +1427,11 @@ nfp_t generateNFP(polygon_t& pA, polygon_t& pB, const bool checkValidity = true)
 
 	nfp.push_back({});
 	point_t transB = {pAstart - pBstart};
-	SlideResult sr;
-	while((sr = slide(pA, pA.outer(), pB.outer(), nfp, transB)) != LOOP) {
-		if(sr == NO_LOOP)
+
+	if(slide(pA, pA.outer(), pB.outer(), nfp, transB) != LOOP) {
 			throw std::runtime_error("Unable to complete outer nfp loop");
-		else if(searchStartTranslation(pA.outer(), pB.outer(), nfp, false, transB) != FOUND)
-			break;
 	}
-	return nfp;
+
 	DEBUG_VAL("##### outer #####");
 	point_t startTrans;
   while(true) {
@@ -1442,7 +1447,6 @@ nfp_t generateNFP(polygon_t& pA, polygon_t& pB, const bool checkValidity = true)
 						nfp.push_back({});
 						nfp.back().push_back(pB.outer().front());
 					}
-					std::cerr << "NO_TRANS: " << pB.outer().front() << std::endl;
 				}
 			}
 			DEBUG_VAL("##### interlock end #####");
@@ -1455,7 +1459,6 @@ nfp_t generateNFP(polygon_t& pA, polygon_t& pB, const bool checkValidity = true)
 				nfp.push_back({});
 				nfp.back().push_back(translated);
 			}
-			std::cerr << "FIT: " << translated << std::endl;
 			break;
   	} else
   		break;
