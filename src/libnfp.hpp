@@ -1013,10 +1013,14 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 		if(historyCopy.size() >= 2) {
 			historyCopy.erase(historyCopy.end() - 1);
 			historyCopy.erase(historyCopy.end() - 1);
+			if(historyCopy.size() > 2) {
+				historyCopy.erase(historyCopy.begin(), historyCopy.end() - 2);
+			}
+
 		} else {
 			historyCopy.clear();
 		}
-		std::cerr << "last: " << last << std::endl;
+		DEBUG_MSG("last", last);
 
 		psize_t laterI = std::numeric_limits<psize_t>::max();
 		point_t previous = rA[0];
@@ -1105,7 +1109,7 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 
 		if(!viableTrans.empty())
 			return getLongest(viableTrans);
-
+/*
 		//search again without the history
 		for(const auto& ve: viableEdges) {
 			for(const auto& tv : tvs) {
@@ -1131,7 +1135,7 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 		}
 		if(!viableTrans.empty())
 			return getLongest(viableTrans);
-
+*/
 		/*
 		//search again without the history and without checking last edge
 		for(const auto& ve: viableEdges) {
@@ -1156,6 +1160,9 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 				}
 			}
 		}*/
+
+		if(tvs.size() == 1)
+			return *tvs.begin();
 
 		TranslationVector tv;
 		tv.vector_ = INVALID_POINT;
@@ -1290,7 +1297,7 @@ enum SlideResult {
 	NO_TRANSLATION
 };
 
-SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type& rB, nfp_t& nfp, const point_t& transB) {
+SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type& rB, nfp_t& nfp, const point_t& transB, bool inside) {
 	polygon_t::ring_type rifsB;
 	boost::geometry::transform(rB, rifsB, trans::translate_transformer<coord_t, 2, 2>(transB.x_, transB.y_));
 	rB = std::move(rifsB);
@@ -1351,7 +1358,7 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 #endif
 
 		++cnt;
-		if(referenceStart == rB.front()) {
+		if(referenceStart == rB.front() || (inside && bg::touches(rB.front(), nfp.front()))) {
 			startAvailable = false;
 		}
 	}
@@ -1447,7 +1454,7 @@ nfp_t generateNFP(polygon_t& pA, polygon_t& pB, const bool checkValidity = true)
 	nfp.push_back({});
 	point_t transB = {pAstart - pBstart};
 
-	if(slide(pA, pA.outer(), pB.outer(), nfp, transB) != LOOP) {
+	if(slide(pA, pA.outer(), pB.outer(), nfp, transB, false) != LOOP) {
 			throw std::runtime_error("Unable to complete outer nfp loop");
 	}
 
@@ -1463,7 +1470,7 @@ nfp_t generateNFP(polygon_t& pA, polygon_t& pB, const bool checkValidity = true)
 			if(inNfp(rifsB.front(), nfp)) {
 				continue;
 			}
-			SlideResult sres = slide(pA, pA.outer(), pB.outer(), nfp, startTrans);
+			SlideResult sres = slide(pA, pA.outer(), pB.outer(), nfp, startTrans, true);
 			if(sres != LOOP) {
 				if(sres == NO_TRANSLATION) {
 					//no initial slide found -> jiggsaw
@@ -1495,7 +1502,7 @@ nfp_t generateNFP(polygon_t& pA, polygon_t& pB, const bool checkValidity = true)
 			if(res == FOUND) {
 				nfp.push_back({});
 				DEBUG_VAL("##### hole start #####");
-				slide(pA, rA, pB.outer(), nfp, startTrans);
+				slide(pA, rA, pB.outer(), nfp, startTrans, true);
 				DEBUG_VAL("##### hole end #####");
 			} else if(res == FIT) {
 	  		point_t reference = pB.outer().front();
