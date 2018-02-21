@@ -1131,7 +1131,8 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 		}
 		if(!viableTrans.empty())
 			return getLongest(viableTrans);
-/*
+
+		/*
 		//search again without the history and without checking last edge
 		for(const auto& ve: viableEdges) {
 			for(const auto& tv : tvs) {
@@ -1457,6 +1458,11 @@ nfp_t generateNFP(polygon_t& pA, polygon_t& pB, const bool checkValidity = true)
   	if(res == FOUND) {
 			nfp.push_back({});
 			DEBUG_VAL("##### interlock start #####")
+			polygon_t::ring_type rifsB;
+			boost::geometry::transform(pB.outer(), rifsB, trans::translate_transformer<coord_t, 2, 2>(startTrans.x_, startTrans.y_));
+			if(inNfp(rifsB.front(), nfp)) {
+				continue;
+			}
 			SlideResult sres = slide(pA, pA.outer(), pB.outer(), nfp, startTrans);
 			if(sres != LOOP) {
 				if(sres == NO_TRANSLATION) {
