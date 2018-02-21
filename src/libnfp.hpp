@@ -974,6 +974,38 @@ bool find(const std::vector<TranslationVector>& h, const TranslationVector& tv) 
 	return false;
 }
 
+TranslationVector getLongest(const std::set<TranslationVector>& tvs) {
+	coord_t len;
+	coord_t maxLen = MIN_COORD;
+	TranslationVector longest;
+	longest.vector_ = INVALID_POINT;
+
+	for(auto& tv : tvs) {
+		len = bg::length(segment_t{{0,0},tv.vector_});
+		if(larger(len, maxLen)) {
+			maxLen = len;
+			longest = tv;
+		}
+	}
+	return longest;
+}
+
+TranslationVector getLongest(const std::vector<TranslationVector>& tvs) {
+	coord_t len;
+	coord_t maxLen = MIN_COORD;
+	TranslationVector longest;
+	longest.vector_ = INVALID_POINT;
+
+	for(auto& tv : tvs) {
+		len = bg::length(segment_t{{0,0},tv.vector_});
+		if(larger(len, maxLen)) {
+			maxLen = len;
+			longest = tv;
+		}
+	}
+	return longest;
+}
+
 TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon_t::ring_type& rA,	const polygon_t::ring_type& rB, const std::set<TranslationVector>& tvs, const std::vector<TranslationVector>& history) {
 	if(!history.empty()) {
 		TranslationVector last = history.back();
@@ -1047,10 +1079,11 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 //		std::shuffle(std::begin(viableEdges), std::end(viableEdges), rng);
 
 		//search with consulting the history to prevent oscillation
+		std::vector<TranslationVector> viableTrans;
 		for(const auto& ve: viableEdges) {
 			for(const auto& tv : tvs) {
 				if((tv.fromA_ && (normalize(tv.vector_) == normalize(ve.second - ve.first))) && (tv.edge_.first != last.edge_.first || tv.edge_.second != last.edge_.second) && !find(historyCopy, tv)) {
-					return tv;
+					viableTrans.push_back(tv);
 				}
 			}
 			for (const auto& tv : tvs) {
@@ -1064,17 +1097,20 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 						continue;
 
 					if (later == ve.first || later == ve.second) {
-						return tv;
+						viableTrans.push_back(tv);
 					}
 				}
 			}
 		}
+
+		if(!viableTrans.empty())
+			return getLongest(viableTrans);
 
 		//search again without the history
 		for(const auto& ve: viableEdges) {
 			for(const auto& tv : tvs) {
 				if((tv.fromA_ && (normalize(tv.vector_) == normalize(ve.second - ve.first))) && (tv.edge_.first != last.edge_.first || tv.edge_.second != last.edge_.second)) {
-					return tv;
+					viableTrans.push_back(tv);
 				}
 			}
 			for (const auto& tv : tvs) {
@@ -1088,11 +1124,13 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 						continue;
 
 					if (later == ve.first || later == ve.second) {
-						return tv;
+						viableTrans.push_back(tv);
 					}
 				}
 			}
 		}
+		if(!viableTrans.empty())
+			return getLongest(viableTrans);
 /*
 		//search again without the history and without checking last edge
 		for(const auto& ve: viableEdges) {
@@ -1122,28 +1160,7 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 		tv.vector_ = INVALID_POINT;
 		return tv;
 	} else {
-		std::vector<TranslationVector> notDisconnectingTranslation;
-		for (auto& tv : tvs) {
-			notDisconnectingTranslation.push_back(tv);
-		}
-
-		if(notDisconnectingTranslation.empty()) {
-			TranslationVector tv;
-			tv.vector_ = INVALID_POINT;
-			return tv;
-		}
-
-		coord_t len;
-		coord_t maxLen = MIN_COORD;
-		TranslationVector longest;
-		for(auto& tv : notDisconnectingTranslation) {
-			len = bg::length(segment_t{{0,0},tv.vector_});
-			if(larger(len, maxLen)) {
-				maxLen = len;
-				longest = tv;
-			}
-		}
-		return longest;
+		return getLongest(tvs);
 	}
 }
 
