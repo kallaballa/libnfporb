@@ -1049,14 +1049,14 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 		//search with consulting the history to prevent oscillation
 		for(const auto& ve: viableEdges) {
 			for(const auto& tv : tvs) {
-				if((tv.fromA_ && (normalize(tv.vector_) == normalize(ve.second - ve.first))) && tv.edge_ != last.edge_ && !find(historyCopy, tv)) {
+				if((tv.fromA_ && (normalize(tv.vector_) == normalize(ve.second - ve.first))) && (tv.edge_.first != last.edge_.first || tv.edge_.second != last.edge_.second) && !find(historyCopy, tv)) {
 					return tv;
 				}
 			}
 			for (const auto& tv : tvs) {
 				if (!tv.fromA_) {
 					point_t later;
-					if (tv.vector_ == (tv.edge_.second - tv.edge_.first) && tv.edge_ != last.edge_) {
+					if (tv.vector_ == (tv.edge_.second - tv.edge_.first) && (tv.edge_.first != last.edge_.first || tv.edge_.second != last.edge_.second)) {
 						later = tv.edge_.second;
 					} else if (tv.vector_ == (tv.edge_.first - tv.edge_.second)) {
 						later = tv.edge_.first;
@@ -1073,14 +1073,14 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 		//search again without the history
 		for(const auto& ve: viableEdges) {
 			for(const auto& tv : tvs) {
-				if((tv.fromA_ && (normalize(tv.vector_) == normalize(ve.second - ve.first))) && tv.edge_ != last.edge_) {
+				if((tv.fromA_ && (normalize(tv.vector_) == normalize(ve.second - ve.first))) && (tv.edge_.first != last.edge_.first || tv.edge_.second != last.edge_.second)) {
 					return tv;
 				}
 			}
 			for (const auto& tv : tvs) {
 				if (!tv.fromA_) {
 					point_t later;
-					if (tv.vector_ == (tv.edge_.second - tv.edge_.first) && tv.edge_ != last.edge_) {
+					if (tv.vector_ == (tv.edge_.second - tv.edge_.first) && (tv.edge_.first != last.edge_.first || tv.edge_.second != last.edge_.second)) {
 						later = tv.edge_.second;
 					} else if (tv.vector_ == (tv.edge_.first - tv.edge_.second)) {
 						later = tv.edge_.first;
@@ -1093,7 +1093,7 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 				}
 			}
 		}
-
+/*
 		//search again without the history and without checking last edge
 		for(const auto& ve: viableEdges) {
 			for(const auto& tv : tvs) {
@@ -1116,7 +1116,7 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 					}
 				}
 			}
-		}
+		}*/
 
 		TranslationVector tv;
 		tv.vector_ = INVALID_POINT;
