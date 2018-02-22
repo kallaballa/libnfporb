@@ -656,6 +656,7 @@ struct TranslationVector {
 	point_t vector_;
 	segment_t edge_;
 	bool fromA_;
+	string name_;
 
 	bool operator<(const TranslationVector& other) const {
 		return this->vector_ < other.vector_ || ((this->vector_ == other.vector_) && (this->edge_ < other.edge_));
@@ -663,7 +664,7 @@ struct TranslationVector {
 };
 
 std::ostream& operator<<(std::ostream& os, const TranslationVector& tv) {
-	os << "{" << tv.edge_ << " -> " << tv.vector_ << "} = " << tv.fromA_;
+	os << "{" << tv.edge_ << " -> " << tv.vector_ << "} = " << tv.name_;
 	return os;
 }
 
@@ -807,9 +808,9 @@ TranslationVector trimVector(const polygon_t::ring_type& rA, const polygon_t::ri
  	return trimmed;
 }
 
-std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type& ringA, polygon_t::ring_type& ringB, const std::vector<TouchingPoint>& touchers) {
+std::vector<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type& ringA, polygon_t::ring_type& ringB, const std::vector<TouchingPoint>& touchers) {
 	//use a set to automatically filter duplicate vectors
-	std::set<TranslationVector> potentialVectors;
+	std::vector<TranslationVector> potentialVectors;
 	std::vector<std::pair<segment_t,segment_t>> touchEdges;
 
 	for (psize_t i = 0; i < touchers.size(); i++) {
@@ -859,11 +860,11 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 			//a1 and b1 meet at start vertex
 			al = get_alignment(a1, b1.second);
 			if(al == LEFT) {
-				potentialVectors.insert({b1.first - b1.second, b1, false});
+				potentialVectors.push_back({b1.first - b1.second, b1, false, "vertex1"});
 			} else if(al == RIGHT) {
-				potentialVectors.insert({a1.second - a1.first, a1, true});
+				potentialVectors.push_back({a1.second - a1.first, a1, true, "vertex2"});
 			} else {
-				potentialVectors.insert({a1.second - a1.first, a1, true});
+				potentialVectors.push_back({a1.second - a1.first, a1, true, "vertex3"});
 			}
 
 			//a1 and b2 meet at start and end
@@ -871,9 +872,9 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 			if(al == LEFT) {
 				//no feasible translation
 			} else if(al == RIGHT) {
-				potentialVectors.insert({a1.second - a1.first, a1, true});
+				potentialVectors.push_back({a1.second - a1.first, a1, true, "vertex4"});
 			} else {
-				potentialVectors.insert({a1.second - a1.first, a1, true});
+				potentialVectors.push_back({a1.second - a1.first, a1, true, "vertex5"});
 			}
 
 			//a2 and b1 meet at end and start
@@ -881,9 +882,9 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 			if(al == LEFT) {
 				//no feasible translation
 			} else if(al == RIGHT) {
-				potentialVectors.insert({b1.first - b1.second, b1, false});
+				potentialVectors.push_back({b1.first - b1.second, b1, false, "vertex6"});
 			} else {
-				potentialVectors.insert({a2.second - a2.first, a2, true});
+				potentialVectors.push_back({b1.first - b1.second, b1, false, "vertex7"});
 			}
 		} else if (touchers[i].type_ == TouchingPoint::B_ON_A) {
 			segment_t a1 = {vertexB, vertexA};
@@ -898,7 +899,7 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 #ifdef NFP_DEBUG
 			write_svg("touchersB" + std::to_string(i) + ".svg", {a1,a2,b1,b2});
 #endif
-			potentialVectors.insert({vertexA - vertexB, {vertexB, vertexA}, true});
+			potentialVectors.push_back({vertexA - vertexB, {vertexB, vertexA}, true, "bona"});
 		} else if (touchers[i].type_ == TouchingPoint::A_ON_B) {
 			//TODO testme
 			segment_t a1 = {vertexA, prevA};
@@ -912,12 +913,12 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 			touchEdges.push_back({a2, b1});
 			touchEdges.push_back({a1, b2});
 			touchEdges.push_back({a2, b2});
-			potentialVectors.insert({vertexA - vertexB, {vertexA, vertexB}, false});
+			potentialVectors.push_back({vertexA - vertexB, {vertexA, vertexB}, false, "aonb"});
 		}
 	}
 
 	//discard immediately intersecting translations
-	std::set<TranslationVector> vectors;
+	std::vector<TranslationVector> vectors;
 	for(const auto& v : potentialVectors) {
 		bool discarded = false;
 		for(const auto& sp : touchEdges) {
@@ -940,6 +941,7 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 					boost::geometry::transform(ringB, translated, translate);
 					if (!(bg::intersects(translated, ringA) && !bg::overlaps(translated, ringA) && !bg::covered_by(translated, ringA) && !bg::covered_by(ringA, translated))) {
 						discarded = true;
+						std::cerr << "discarded" << std::endl;
 						break;
 					}
 				} else {
@@ -959,12 +961,10 @@ std::set<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type&
 			}
 		}
 		if(!discarded)
-			vectors.insert(v);
+			vectors.push_back(v);
 	}
 	return vectors;
 }
-
-static TranslationVector beforeLast;
 
 bool find(const std::vector<TranslationVector>& h, const TranslationVector& tv) {
 	for(const auto& htv : h) {
@@ -972,22 +972,6 @@ bool find(const std::vector<TranslationVector>& h, const TranslationVector& tv) 
 			return true;
 	}
 	return false;
-}
-
-TranslationVector getLongest(const std::set<TranslationVector>& tvs) {
-	coord_t len;
-	coord_t maxLen = MIN_COORD;
-	TranslationVector longest;
-	longest.vector_ = INVALID_POINT;
-
-	for(auto& tv : tvs) {
-		len = bg::length(segment_t{{0,0},tv.vector_});
-		if(larger(len, maxLen)) {
-			maxLen = len;
-			longest = tv;
-		}
-	}
-	return longest;
 }
 
 TranslationVector getLongest(const std::vector<TranslationVector>& tvs) {
@@ -1006,15 +990,15 @@ TranslationVector getLongest(const std::vector<TranslationVector>& tvs) {
 	return longest;
 }
 
-TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon_t::ring_type& rA,	const polygon_t::ring_type& rB, const std::set<TranslationVector>& tvs, const std::vector<TranslationVector>& history) {
+TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon_t::ring_type& rA,	const polygon_t::ring_type& rB, const std::vector<TranslationVector>& tvs, const std::vector<TranslationVector>& history) {
 	if(!history.empty()) {
 		TranslationVector last = history.back();
 		std::vector<TranslationVector> historyCopy = history;
 		if(historyCopy.size() >= 2) {
 			historyCopy.erase(historyCopy.end() - 1);
 			historyCopy.erase(historyCopy.end() - 1);
-			if(historyCopy.size() > 2) {
-				historyCopy.erase(historyCopy.begin(), historyCopy.end() - 2);
+			if(historyCopy.size() > 4) {
+				historyCopy.erase(historyCopy.begin(), historyCopy.end() - 4);
 			}
 
 		} else {
@@ -1069,7 +1053,7 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 
 		std::vector<segment_t> viableEdges;
 		previous = rA[laterI];
-		for(psize_t i = laterI + 1; i < rA.size() + laterI; ++i) {
+		for(psize_t i = laterI + 1; i < rA.size() + laterI + 1; ++i) {
 			if(i >= rA.size())
 				next = rA[i % rA.size() + 1];
 			else
@@ -1109,7 +1093,7 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 
 		if(!viableTrans.empty())
 			return getLongest(viableTrans);
-/*
+
 		//search again without the history
 		for(const auto& ve: viableEdges) {
 			for(const auto& tv : tvs) {
@@ -1135,7 +1119,7 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 		}
 		if(!viableTrans.empty())
 			return getLongest(viableTrans);
-*/
+
 		/*
 		//search again without the history and without checking last edge
 		for(const auto& ve: viableEdges) {
@@ -1321,10 +1305,16 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 
 		std::vector<TouchingPoint> touchers = findTouchingPoints(rA, rB);
 
+#ifdef NFP_DEBUG
+		DEBUG_MSG("touchers", touchers.size());
+		for(auto t : touchers) {
+			DEBUG_VAL(t.type_);
+		}
+#endif
 		if(touchers.empty()) {
 			throw std::runtime_error("Internal error: No touching points found");
 		}
-		std::set<TranslationVector> transVectors = findFeasibleTranslationVectors(rA, rB, touchers);
+		std::vector<TranslationVector> transVectors = findFeasibleTranslationVectors(rA, rB, touchers);
 
 #ifdef NFP_DEBUG
 		DEBUG_MSG("collected vectors", transVectors.size());
