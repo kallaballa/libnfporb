@@ -1,8 +1,9 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.en.html)
 ##### If you give me a real good reason i might be willing to give you permission to use it under a different license for a specific application. Real good reasons include the following (non-exhausive): the greater good, educational purpose and money :)
 
-# libnfp
-Implementation of a robust no-fit polygon generation in a C++ library
+# libnfporb
+Implementation of a robust no-fit polygon generation in a C++ library using an orbiting approach.
+Please note: The paper is based it on has several bad assumptions that required me to "improvise". That means the code doesn't reflect the paper anymore and is running way slower than expected. At the moment I'm working on implementing a new approach based on this paper (using minkowski sums): https://eprints.soton.ac.uk/36850/1/CORMSIS-05-05.pdf
 
 ## Description
 
