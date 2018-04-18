@@ -1,10 +1,10 @@
 //uncomment next line to use infinite precision (slow)
 //#define LIBNFP_USE_RATIONAL
-#include "../src/libnfp.hpp"
+#include "../src/libnfporb.hpp"
 #include <random>
 
 int main(int argc, char** argv) {
-  using namespace libnfp;
+  using namespace libnfporb;
 	polygon_t pA;
 	polygon_t pB;
 

@@ -27,7 +27,7 @@ namespace bg = boost::geometry;
 namespace trans = boost::geometry::strategy::transform;
 
 
-namespace libnfp {
+namespace libnfporb {
 #ifdef NFP_DEBUG
 #define DEBUG_VAL(x) std::cerr << x << std::endl;
 #define DEBUG_MSG(title, value) std::cerr << title << ":" << value << std::endl;
@@ -171,7 +171,7 @@ public:
 
 namespace std {
 template<>
-   struct numeric_limits<libnfp::LongDouble>
+   struct numeric_limits<libnfporb::LongDouble>
    {
      static constexpr bool is_specialized = true;
 
@@ -198,7 +198,7 @@ template<>
      static constexpr int radix = __FLT_RADIX__;
 
      static constexpr long double
-     epsilon() noexcept { return libnfp::NFP_EPSILON; }
+     epsilon() noexcept { return libnfporb::NFP_EPSILON; }
 
      static constexpr long double
      round_error() noexcept { return 0.5L; }
@@ -244,17 +244,17 @@ template<>
 namespace boost {
 namespace numeric {
 	template<>
-	struct raw_converter<boost::numeric::conversion_traits<double, libnfp::LongDouble>>
+	struct raw_converter<boost::numeric::conversion_traits<double, libnfporb::LongDouble>>
 	{
-		typedef typename boost::numeric::conversion_traits<double, libnfp::LongDouble>::result_type   result_type   ;
-		typedef typename boost::numeric::conversion_traits<double, libnfp::LongDouble>::argument_type argument_type ;
+		typedef typename boost::numeric::conversion_traits<double, libnfporb::LongDouble>::result_type   result_type   ;
+		typedef typename boost::numeric::conversion_traits<double, libnfporb::LongDouble>::argument_type argument_type ;
 
 		static result_type low_level_convert ( argument_type s ) { return s.val() ; }
 	} ;
 }
 }
 
-namespace libnfp {
+namespace libnfporb {
 
 typedef bm::number<bm::gmp_rational, bm::et_off> rational_t;
 #ifndef LIBNFP_USE_RATIONAL
@@ -337,23 +337,23 @@ const point_t INVALID_POINT = {MAX_COORD, MAX_COORD};
 typedef bg::model::segment<point_t> segment_t;
 }
 
-inline long double acos(const libnfp::rational_t& r) {
-	return acos(libnfp::toLongDouble(r));
+inline long double acos(const libnfporb::rational_t& r) {
+	return acos(libnfporb::toLongDouble(r));
 }
 
-inline long double acos(const libnfp::LongDouble& ld) {
-	return acos(libnfp::toLongDouble(ld));
+inline long double acos(const libnfporb::LongDouble& ld) {
+	return acos(libnfporb::toLongDouble(ld));
 }
 
-inline long double sqrt(const libnfp::rational_t& r) {
-	return sqrt(libnfp::toLongDouble(r));
+inline long double sqrt(const libnfporb::rational_t& r) {
+	return sqrt(libnfporb::toLongDouble(r));
 }
 
-inline long double sqrt(const libnfp::LongDouble& ld) {
-	return sqrt(libnfp::toLongDouble(ld));
+inline long double sqrt(const libnfporb::LongDouble& ld) {
+	return sqrt(libnfporb::toLongDouble(ld));
 }
 
-BOOST_GEOMETRY_REGISTER_POINT_2D(libnfp::point_t, libnfp::coord_t, cs::cartesian, x_, y_)
+BOOST_GEOMETRY_REGISTER_POINT_2D(libnfporb::point_t, libnfporb::coord_t, cs::cartesian, x_, y_)
 
 
 namespace boost {
@@ -362,56 +362,56 @@ namespace math {
 namespace detail {
 
 template <>
-struct square_root<libnfp::LongDouble>
+struct square_root<libnfporb::LongDouble>
 {
-  typedef libnfp::LongDouble return_type;
+  typedef libnfporb::LongDouble return_type;
 
-	static inline libnfp::LongDouble apply(libnfp::LongDouble const& a)
+	static inline libnfporb::LongDouble apply(libnfporb::LongDouble const& a)
   {
         return std::sqrt(a.val());
   }
 };
 
 template <>
-struct square_root<libnfp::rational_t>
+struct square_root<libnfporb::rational_t>
 {
-  typedef libnfp::rational_t return_type;
+  typedef libnfporb::rational_t return_type;
 
-	static inline libnfp::rational_t apply(libnfp::rational_t const& a)
+	static inline libnfporb::rational_t apply(libnfporb::rational_t const& a)
   {
-        return std::sqrt(libnfp::toLongDouble(a));
+        return std::sqrt(libnfporb::toLongDouble(a));
   }
 };
 
 template<>
-struct abs<libnfp::LongDouble>
+struct abs<libnfporb::LongDouble>
 	{
-	static libnfp::LongDouble apply(libnfp::LongDouble const& value)
+	static libnfporb::LongDouble apply(libnfporb::LongDouble const& value)
 			{
-				libnfp::LongDouble const zero = libnfp::LongDouble();
+				libnfporb::LongDouble const zero = libnfporb::LongDouble();
 					return value.val() < zero.val() ? -value.val() : value.val();
 			}
 	};
 
 template <>
-struct equals<libnfp::LongDouble, false>
+struct equals<libnfporb::LongDouble, false>
 {
 	template<typename Policy>
-	static inline bool apply(libnfp::LongDouble const& lhs, libnfp::LongDouble const& rhs, Policy const& policy)
+	static inline bool apply(libnfporb::LongDouble const& lhs, libnfporb::LongDouble const& rhs, Policy const& policy)
   {
 		if(lhs.val() == rhs.val())
 			return true;
 
-	  return bg::math::detail::abs<libnfp::LongDouble>::apply(lhs.val() - rhs.val()) <=  policy.apply(lhs.val(), rhs.val()) * libnfp::NFP_EPSILON;
+	  return bg::math::detail::abs<libnfporb::LongDouble>::apply(lhs.val() - rhs.val()) <=  policy.apply(lhs.val(), rhs.val()) * libnfporb::NFP_EPSILON;
   }
 };
 
 template <>
-struct smaller<libnfp::LongDouble>
+struct smaller<libnfporb::LongDouble>
 {
-	static inline bool apply(libnfp::LongDouble const& lhs, libnfp::LongDouble const& rhs)
+	static inline bool apply(libnfporb::LongDouble const& lhs, libnfporb::LongDouble const& rhs)
   {
-		if(lhs.val() == rhs.val() || bg::math::detail::abs<libnfp::LongDouble>::apply(lhs.val() - rhs.val()) <=  libnfp::NFP_EPSILON * std::max(lhs.val(), rhs.val()))
+		if(lhs.val() == rhs.val() || bg::math::detail::abs<libnfporb::LongDouble>::apply(lhs.val() - rhs.val()) <=  libnfporb::NFP_EPSILON * std::max(lhs.val(), rhs.val()))
 			return false;
 
 	  return lhs < rhs;
@@ -422,7 +422,7 @@ struct smaller<libnfp::LongDouble>
 }
 }
 
-namespace libnfp {
+namespace libnfporb {
 inline bool smaller(const LongDouble& lhs, const LongDouble& rhs) {
 	return boost::geometry::math::detail::smaller<LongDouble>::apply(lhs, rhs);
 }
@@ -435,7 +435,7 @@ bool equals(const LongDouble& lhs, const LongDouble& rhs) {
 	if(lhs.val() == rhs.val())
 		return true;
 
-  return bg::math::detail::abs<libnfp::LongDouble>::apply(lhs.val() - rhs.val()) <=  libnfp::NFP_EPSILON * std::max(lhs.val(), rhs.val());
+  return bg::math::detail::abs<libnfporb::LongDouble>::apply(lhs.val() - rhs.val()) <=  libnfporb::NFP_EPSILON * std::max(lhs.val(), rhs.val());
 }
 
 inline bool smaller(const rational_t& lhs, const rational_t& rhs) {
@@ -968,7 +968,7 @@ std::vector<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_ty
 
 bool find(const std::vector<TranslationVector>& h, const TranslationVector& tv) {
 	for(const auto& htv : h) {
-		if(htv.edge_ == tv.edge_)
+		if(htv.vector_ == tv.vector_)
 			return true;
 	}
 	return false;
@@ -1070,14 +1070,14 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 		std::vector<TranslationVector> viableTrans;
 		for(const auto& ve: viableEdges) {
 			for(const auto& tv : tvs) {
-				if((tv.fromA_ && (normalize(tv.vector_) == normalize(ve.second - ve.first))) && (tv.edge_.first != last.edge_.first || tv.edge_.second != last.edge_.second) && !find(historyCopy, tv)) {
+				if((tv.fromA_ && (normalize(tv.vector_) == normalize(ve.second - ve.first))) && (tv.edge_ != last.edge_ || tv.vector_.x_ != -last.vector_.x_ || tv.vector_.y_ != -last.vector_.y_) && !find(historyCopy, tv)) {
 					viableTrans.push_back(tv);
 				}
 			}
 			for (const auto& tv : tvs) {
 				if (!tv.fromA_) {
 					point_t later;
-					if (tv.vector_ == (tv.edge_.second - tv.edge_.first) && (tv.edge_.first != last.edge_.first || tv.edge_.second != last.edge_.second)) {
+					if (tv.vector_ == (tv.edge_.second - tv.edge_.first) && (tv.edge_ != last.edge_ || tv.vector_.x_ != -last.vector_.x_ || tv.vector_.y_ != -last.vector_.y_) && !find(historyCopy, tv)) {
 						later = tv.edge_.second;
 					} else if (tv.vector_ == (tv.edge_.first - tv.edge_.second)) {
 						later = tv.edge_.first;
@@ -1097,14 +1097,14 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 		//search again without the history
 		for(const auto& ve: viableEdges) {
 			for(const auto& tv : tvs) {
-				if((tv.fromA_ && (normalize(tv.vector_) == normalize(ve.second - ve.first))) && (tv.edge_.first != last.edge_.first || tv.edge_.second != last.edge_.second)) {
+				if((tv.fromA_ && (normalize(tv.vector_) == normalize(ve.second - ve.first))) && (tv.edge_ != last.edge_ || tv.vector_.x_ != -last.vector_.x_ || tv.vector_.y_ != -last.vector_.y_)) {
 					viableTrans.push_back(tv);
 				}
 			}
 			for (const auto& tv : tvs) {
 				if (!tv.fromA_) {
 					point_t later;
-					if (tv.vector_ == (tv.edge_.second - tv.edge_.first) && (tv.edge_.first != last.edge_.first || tv.edge_.second != last.edge_.second)) {
+					if (tv.vector_ == (tv.edge_.second - tv.edge_.first) && (tv.edge_ != last.edge_ || tv.vector_.x_ != -last.vector_.x_ || tv.vector_.y_ != -last.vector_.y_)) {
 						later = tv.edge_.second;
 					} else if (tv.vector_ == (tv.edge_.first - tv.edge_.second)) {
 						later = tv.edge_.first;
