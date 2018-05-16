@@ -11,8 +11,10 @@
 #include <exception>
 #include <random>
 
+#ifdef LIBNFP_USE_RATIONAL
 #include <boost/multiprecision/gmp.hpp>
 #include <boost/multiprecision/number.hpp>
+#endif
 #include <boost/geometry.hpp>
 #include <boost/geometry/util/math.hpp>
 #include <boost/geometry/geometries/point_xy.hpp>
@@ -22,7 +24,9 @@
 #include <boost/geometry/algorithms/intersects.hpp>
 #include <boost/geometry/geometries/register/point.hpp>
 
+#ifdef LIBNFP_USE_RATIONAL
 namespace bm = boost::multiprecision;
+#endif
 namespace bg = boost::geometry;
 namespace trans = boost::geometry::strategy::transform;
 
@@ -256,15 +260,17 @@ namespace numeric {
 
 namespace libnfporb {
 
-typedef bm::number<bm::gmp_rational, bm::et_off> rational_t;
 #ifndef LIBNFP_USE_RATIONAL
 typedef LongDouble coord_t;
 #else
+typedef bm::number<bm::gmp_rational, bm::et_off> rational_t;
 typedef rational_t coord_t;
 #endif
 
 bool equals(const LongDouble& lhs, const LongDouble& rhs);
+#ifdef LIBNFP_USE_RATIONAL
 bool equals(const rational_t& lhs, const rational_t& rhs);
+#endif
 bool equals(const long double& lhs, const long double& rhs);
 
 const coord_t MAX_COORD = 999999999999999999;
@@ -312,9 +318,11 @@ inline long double toLongDouble(const LongDouble& c) {
 	return c.val();
 }
 
+#ifdef LIBNFP_USE_RATIONAL
 inline long double toLongDouble(const rational_t& c) {
 	return bm::numerator(c).convert_to<long double>() / bm::denominator(c).convert_to<long double>();
 }
+#endif
 
 std::ostream& operator<<(std::ostream& os, const coord_t& p) {
 	os << toLongDouble(p);
@@ -337,17 +345,21 @@ const point_t INVALID_POINT = {MAX_COORD, MAX_COORD};
 typedef bg::model::segment<point_t> segment_t;
 }
 
+#ifdef LIBNFP_USE_RATIONAL
 inline long double acos(const libnfporb::rational_t& r) {
 	return acos(libnfporb::toLongDouble(r));
 }
+#endif
 
 inline long double acos(const libnfporb::LongDouble& ld) {
 	return acos(libnfporb::toLongDouble(ld));
 }
 
+#ifdef LIBNFP_USE_RATIONAL
 inline long double sqrt(const libnfporb::rational_t& r) {
 	return sqrt(libnfporb::toLongDouble(r));
 }
+#endif
 
 inline long double sqrt(const libnfporb::LongDouble& ld) {
 	return sqrt(libnfporb::toLongDouble(ld));
@@ -372,6 +384,7 @@ struct square_root<libnfporb::LongDouble>
   }
 };
 
+#ifdef LIBNFP_USE_RATIONAL
 template <>
 struct square_root<libnfporb::rational_t>
 {
@@ -382,6 +395,7 @@ struct square_root<libnfporb::rational_t>
         return std::sqrt(libnfporb::toLongDouble(a));
   }
 };
+#endif
 
 template<>
 struct abs<libnfporb::LongDouble>
@@ -438,6 +452,7 @@ bool equals(const LongDouble& lhs, const LongDouble& rhs) {
   return bg::math::detail::abs<libnfporb::LongDouble>::apply(lhs.val() - rhs.val()) <=  libnfporb::NFP_EPSILON * std::max(lhs.val(), rhs.val());
 }
 
+#ifdef LIBNFP_USE_RATIONAL
 inline bool smaller(const rational_t& lhs, const rational_t& rhs) {
 	return lhs < rhs;
 }
@@ -449,6 +464,7 @@ inline bool larger(const rational_t& lhs, const rational_t& rhs) {
 bool equals(const rational_t& lhs, const rational_t& rhs) {
 	return lhs == rhs;
 }
+#endif
 
 inline bool smaller(const long double& lhs, const long double& rhs) {
 	return lhs < rhs;
