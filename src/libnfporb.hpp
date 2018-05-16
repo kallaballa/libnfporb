@@ -10,6 +10,7 @@
 #include <set>
 #include <exception>
 #include <random>
+#include <limits>
 
 #ifdef LIBNFP_USE_RATIONAL
 #include <boost/multiprecision/gmp.hpp>
@@ -180,18 +181,18 @@ template<>
      static constexpr bool is_specialized = true;
 
      static constexpr long double
-     min() noexcept { return __LDBL_MIN__; }
+     min() noexcept { return std::numeric_limits<long double>::min(); }
 
      static constexpr long double
-     max() noexcept { return __LDBL_MAX__; }
+     max() noexcept { return std::numeric_limits<long double>::max(); }
 
 #if __cplusplus >= 201103L
      static constexpr long double
-     lowest() noexcept { return -__LDBL_MAX__; }
+     lowest() noexcept { return -std::numeric_limits<long double>::lowest(); }
 #endif
 
-     static constexpr int digits = __LDBL_MANT_DIG__;
-     static constexpr int digits10 = __LDBL_DIG__;
+     static constexpr int digits = std::numeric_limits<long double>::digits;
+     static constexpr int digits10 = std::numeric_limits<long double>::digits10;
 #if __cplusplus >= 201103L
      static constexpr int max_digits10
 	 = std::numeric_limits<long double>::max_digits10;
@@ -199,7 +200,7 @@ template<>
      static constexpr bool is_signed = true;
      static constexpr bool is_integer = false;
      static constexpr bool is_exact = false;
-     static constexpr int radix = __FLT_RADIX__;
+     static constexpr int radix = std::numeric_limits<long double>::radix;
 
      static constexpr long double
      epsilon() noexcept { return libnfporb::NFP_EPSILON; }
@@ -207,33 +208,37 @@ template<>
      static constexpr long double
      round_error() noexcept { return 0.5L; }
 
-     static constexpr int min_exponent = __LDBL_MIN_EXP__;
-     static constexpr int min_exponent10 = __LDBL_MIN_10_EXP__;
-     static constexpr int max_exponent = __LDBL_MAX_EXP__;
-     static constexpr int max_exponent10 = __LDBL_MAX_10_EXP__;
+     static constexpr int min_exponent = std::numeric_limits<long double>::min_exponent;
+     static constexpr int min_exponent10 = std::numeric_limits<long double>::min_exponent10;
+     static constexpr int max_exponent = std::numeric_limits<long double>::max_exponent;
+     static constexpr int max_exponent10 = std::numeric_limits<long double>::max_exponent10;
 
-     static constexpr bool has_infinity = __LDBL_HAS_INFINITY__;
-     static constexpr bool has_quiet_NaN = __LDBL_HAS_QUIET_NAN__;
+	 
+     static constexpr bool has_infinity = std::numeric_limits<long double>::has_infinity;
+     static constexpr bool has_quiet_NaN = std::numeric_limits<long double>::has_quiet_NaN;
      static constexpr bool has_signaling_NaN = has_quiet_NaN;
      static constexpr float_denorm_style has_denorm
-	= bool(__LDBL_HAS_DENORM__) ? denorm_present : denorm_absent;
+		 = std::numeric_limits<long double>::has_denorm;
      static constexpr bool has_denorm_loss
-	= std::numeric_limits<long double>::has_denorm_loss;
+	     = std::numeric_limits<long double>::has_denorm_loss;
+	 
 
      static constexpr long double
-     infinity() noexcept { return __builtin_huge_vall(); }
+		infinity() noexcept { return std::numeric_limits<long double>::infinity(); }
 
      static constexpr long double
-     quiet_NaN() noexcept { return __builtin_nanl(""); }
+		 quiet_NaN() noexcept { return std::numeric_limits<long double>::quiet_NaN(); }
 
      static constexpr long double
-     signaling_NaN() noexcept { return __builtin_nansl(""); }
+		 signaling_NaN() noexcept { return std::numeric_limits<long double>::signaling_NaN(); }
 
+	 
      static constexpr long double
-     denorm_min() noexcept { return __LDBL_DENORM_MIN__; }
+		 denorm_min() noexcept { return std::numeric_limits<long double>::denorm_min(); }
 
      static constexpr bool is_iec559
-	= has_infinity && has_quiet_NaN && has_denorm == denorm_present;
+	 = has_infinity && has_quiet_NaN && has_denorm == denorm_present;
+	 
      static constexpr bool is_bounded = true;
      static constexpr bool is_modulo = false;
 
