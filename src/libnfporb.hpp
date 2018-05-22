@@ -941,7 +941,6 @@ std::vector<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_ty
 					boost::geometry::transform(ringB, translated, translate);
 					if (!(bg::intersects(translated, ringA) && !bg::overlaps(translated, ringA) && !bg::covered_by(translated, ringA) && !bg::covered_by(ringA, translated))) {
 						discarded = true;
-						std::cerr << "discarded" << std::endl;
 						break;
 					}
 				} else {
@@ -1013,7 +1012,7 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 		if(last.fromA_) {
 			for (psize_t i = 1; i < rA.size() + 1; ++i) {
 				if (i >= rA.size())
-					next = rA[i % rA.size() + 1];
+					next = rA[i % rA.size()];
 				else
 					next = rA[i];
 
@@ -1055,7 +1054,7 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 		previous = rA[laterI];
 		for(psize_t i = laterI + 1; i < rA.size() + laterI + 1; ++i) {
 			if(i >= rA.size())
-				next = rA[i % rA.size() + 1];
+				next = rA[i % rA.size()];
 			else
 				next = rA[i];
 
