@@ -1,10 +1,12 @@
 TARGET1 := nfp
 TARGET2 := fuzz
 TARGET3 := isvalid 
+TARGET4 := writeGolden
 
 SRCS1 := nfp.cpp
 SRCS2 := fuzz.cpp
 SRCS3 := isvalid.cpp
+SRCS4 := writeGolden.cpp
 
 #precompiled headers
 HEADERS1 := 
@@ -15,20 +17,22 @@ OBJS2    := ${SRCS2:.cpp=.o}
 DEPS2    := ${SRCS2:.cpp=.dep}
 OBJS3    := ${SRCS3:.cpp=.o}
 DEPS3    := ${SRCS3:.cpp=.dep}
+OBJS4    := ${SRCS4:.cpp=.o}
+DEPS4    := ${SRCS4:.cpp=.dep}
 
 
-OBJS	:= ${OBJS1} ${OBJS2} ${OBJS3}
+OBJS	:= ${OBJS1} ${OBJS2} ${OBJS3} ${OBJS4}
 
 CXXFLAGS += -fpic -I.
 LDFLAGS += 
 .PHONY: all release debug clean distclean 
 
 all: release
-release: ${TARGET1} ${TARGET2} ${TARGET3}
-debug: ${TARGET1} ${TARGET2} ${TARGET3}
-info: ${TARGET1} ${TARGET2} ${TARGET3}
-profile: ${TARGET1} ${TARGET2} ${TARGET3}
-hardcore: ${TARGET1} ${TARGET2} ${TARGET3}
+release: ${TARGET1} ${TARGET2} ${TARGET3} ${TARGET4}
+debug: ${TARGET1} ${TARGET2} ${TARGET3} ${TARGET4}
+info: ${TARGET1} ${TARGET2} ${TARGET3} ${TARGET4}
+profile: ${TARGET1} ${TARGET2} ${TARGET3} ${TARGET4}
+hardcore: ${TARGET1} ${TARGET2} ${TARGET3} ${TARGET4}
 
 ${TARGET1}: ${OBJS1}
 	${CXX} ${LDFLAGS} -o $@ $^ ${LIBS}
@@ -64,6 +68,18 @@ ${DEPS3}: %.dep: %.cpp Makefile
 	${CXX} ${CXXFLAGS} -MM $< > $@
 
 ${GCH3}: %.gch: ${HEADERS3}
+	${CXX} ${CXXFLAGS} -o $@ -c ${@:.gch=.hpp}
+
+${TARGET4}: ${OBJS4}
+	${CXX} ${LDFLAGS} -o $@ $^ ${LIBS}
+
+${OBJS4}: %.o: %.cpp %.dep ${GCH4}
+	${CXX} ${CXXFLAGS} -o $@ -c $<
+
+${DEPS4}: %.dep: %.cpp Makefile
+	${CXX} ${CXXFLAGS} -MM $< > $@
+
+${GCH4}: %.gch: ${HEADERS4}
 	${CXX} ${CXXFLAGS} -o $@ -c ${@:.gch=.hpp}
 
 install:
