@@ -87,3 +87,10 @@ int main(int argc, char** argv) {
 Run the example program:
 
     examples/nfp data/crossing/A.wkt data/crossing/B.wkt
+
+## References
+
+* https://dspace.vutbr.cz/xmlui/handle/11012/191851 (Master thesis: Software for efficient use of material in 2D machining)
+* https://github.com/tamasmeszaros/libnest2d (2D irregular bin packaging and nesting library written in modern C++)
+* https://github.com/Naimad1CZ/Online2DIrregularBPP (2D irregular BPP algorithm)
+
