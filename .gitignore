@@ -1,3 +1,4 @@
+examples/writeGolden
 *.svg
 examples/*.dep
 examples/*.o
