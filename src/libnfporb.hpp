@@ -488,7 +488,7 @@ bool equals(const rational_t& lhs, const rational_t& rhs) {
 #endif
 
 inline bool smaller(const long double& lhs, const long double& rhs) {
-	return lhs < rhs;
+	return !equals(rhs, lhs) && lhs < rhs;
 }
 
 inline bool larger(const long double& lhs, const long double& rhs) {
@@ -965,8 +965,8 @@ std::vector<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_ty
 			Alignment a2 = get_alignment( { { 0, 0 }, normEdge }, normSecond);
 
 			if (a1 == a2 && a1 != ON) {
-				long double df = get_inner_angle( { 0, 0 }, normEdge, normFirst);
-				long double ds = get_inner_angle( { 0, 0 }, normEdge, normSecond);
+				LongDouble df = get_inner_angle( { 0, 0 }, normEdge, normFirst);
+				LongDouble ds = get_inner_angle( { 0, 0 }, normEdge, normSecond);
 
 				point_t normIn = normalize(v.edge_.second - v.edge_.first);
 				if (equals(df, ds)) {
@@ -996,11 +996,6 @@ std::vector<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_ty
 		if (!discarded) {
 			vectors.push_back(v);
 		}
-#ifdef NFP_DEBUG
-		else {
-			DEBUG_MSG("discarded", v);
-		}
-#endif
 	}
 	return vectors;
 }
