@@ -789,7 +789,7 @@ TranslationVector trimVector(const polygon_t::ring_type& rA, const polygon_t::ri
 		for(const auto& pti : intersections) {
 			segi = segment_t(ptA,pti);
 			len = bg::length(segi);
-			if(smaller(len, shortest)) {
+			if(len > 0 && smaller(len, shortest)) {
 				trimmed.vector_ = ptA - pti;
 				trimmed.edge_ = segi;
 				shortest = len;
@@ -819,7 +819,7 @@ TranslationVector trimVector(const polygon_t::ring_type& rA, const polygon_t::ri
 
 			segi = segment_t(ptB,pti);
 			len = bg::length(segi);
-			if(smaller(len, shortest)) {
+			if(len > 0 && smaller(len, shortest)) {
 				trimmed.vector_ = pti - ptB;
 				trimmed.edge_ = segi;
 				shortest = len;
