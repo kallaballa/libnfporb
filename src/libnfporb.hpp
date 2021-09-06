@@ -676,7 +676,7 @@ struct TouchingPoint {
 struct TranslationVector {
 	point_t vector_;
 	segment_t edge_;
-	bool fromA_;
+	bool fromA_ = false;
 	string name_;
 
 	bool operator<(const TranslationVector& other) const {
