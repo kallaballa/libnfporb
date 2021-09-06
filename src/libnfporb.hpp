@@ -1101,6 +1101,7 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 //		std::shuffle(std::begin(viableEdges), std::end(viableEdges), rng);
 
 		//search with consulting the history to prevent oscillation
+		bool foundNonHist = false;
 		std::vector<TranslationVector> viableTrans;
 		std::vector<TranslationVector> nonHistViableTrans;
 
@@ -1125,7 +1126,7 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 					}
 				}
 			}
-			bool foundNonHist = false;
+
 			for (const auto& vtv : viableTrans) {
 				if ((foundNonHist = !find(historyCopy, vtv)))
 					break;
@@ -1137,7 +1138,8 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 			}
 		}
 
-		viableTrans = nonHistViableTrans;
+		if(foundNonHist)
+			viableTrans = nonHistViableTrans;
 
 		if (!viableTrans.empty())
 			return getLongest(viableTrans);
