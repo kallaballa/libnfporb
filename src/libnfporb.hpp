@@ -789,7 +789,7 @@ TranslationVector trimVector(const polygon_t::ring_type& rA, const polygon_t::ri
 		for(const auto& pti : intersections) {
 			segi = segment_t(ptA,pti);
 			len = bg::length(segi);
-			if(len > 0 && smaller(len, shortest)) {
+			if(smaller(NFP_EPSILON, len) && smaller(len, shortest)) {
 				trimmed.vector_ = ptA - pti;
 				trimmed.edge_ = segi;
 				shortest = len;
@@ -819,7 +819,7 @@ TranslationVector trimVector(const polygon_t::ring_type& rA, const polygon_t::ri
 
 			segi = segment_t(ptB,pti);
 			len = bg::length(segi);
-			if(len > 0 && smaller(len, shortest)) {
+			if(smaller(NFP_EPSILON, len)  && smaller(len, shortest)) {
 				trimmed.vector_ = pti - ptB;
 				trimmed.edge_ = segi;
 				shortest = len;
@@ -988,9 +988,10 @@ std::vector<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_ty
 
 bool find(const std::vector<TranslationVector>& h, const TranslationVector& tv) {
 	for(const auto& htv : h) {
-		if(htv.vector_ == tv.vector_)
+		if(equals(htv.vector_.x_ , tv.vector_.x_) && equals(htv.vector_.y_ , tv.vector_.y_))
 			return true;
 	}
+
 	return false;
 }
 
@@ -1017,9 +1018,9 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 		if(historyCopy.size() >= 2) {
 			historyCopy.erase(historyCopy.end() - 1);
 			historyCopy.erase(historyCopy.end() - 1);
-			if(historyCopy.size() > 4) {
-				historyCopy.erase(historyCopy.begin(), historyCopy.end() - 4);
-			}
+//			if(historyCopy.size() > 4) {
+//				historyCopy.erase(historyCopy.begin(), historyCopy.end() - 4);
+//			}
 
 		} else {
 			historyCopy.clear();
@@ -1088,6 +1089,8 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 
 		//search with consulting the history to prevent oscillation
 		std::vector<TranslationVector> viableTrans;
+                std::vector<TranslationVector> nonHistViableTrans;
+
 		for(const auto& ve: viableEdges) {
 			for(const auto& tv : tvs) {
 				if((tv.fromA_ && (normalize(tv.vector_) == normalize(ve.second - ve.first))) && (tv.edge_ != last.edge_ || tv.vector_.x_ != -last.vector_.x_ || tv.vector_.y_ != -last.vector_.y_) && !find(historyCopy, tv)) {
@@ -1109,7 +1112,19 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 					}
 				}
 			}
+			bool foundNonHist = false;
+			for(const auto& vtv : viableTrans) {
+				if((foundNonHist = !find(historyCopy, vtv)))
+					break;
+			}
+
+			for(const auto& vtv : viableTrans) {
+				if((!find(historyCopy, vtv)))
+					nonHistViableTrans.push_back(vtv);
+			}
 		}
+
+		viableTrans = nonHistViableTrans;
 
 		if(!viableTrans.empty())
 			return getLongest(viableTrans);
