@@ -7,6 +7,7 @@
 #include <fstream>
 #include <streambuf>
 #include <vector>
+#include <stack>
 #include <set>
 #include <exception>
 #include <random>
@@ -978,7 +979,6 @@ std::vector<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_ty
 						break;
 					}
 				} else {
-
 					if (normIn == normalize(v.vector_)) {
 						if (larger(ds, df)) {
 							discarded = true;
@@ -993,16 +993,23 @@ std::vector<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_ty
 				}
 			}
 		}
-		if (!discarded)
+		if (!discarded) {
 			vectors.push_back(v);
+		}
+#ifdef NFP_DEBUG
+		else {
+			DEBUG_MSG("discarded", v);
+		}
+#endif
 	}
 	return vectors;
 }
 
-bool find(const std::vector<TranslationVector>& h, const TranslationVector& tv) {
-	for (const auto& htv : h) {
-		if (equals(htv.vector_.x_, tv.vector_.x_) && equals(htv.vector_.y_, tv.vector_.y_))
+bool find(std::stack<TranslationVector> h, const TranslationVector& tv) {
+	while (!h.empty()) {
+		if (equals(h.top().vector_.x_, tv.vector_.x_) && equals(h.top().vector_.y_, tv.vector_.y_))
 			return true;
+		h.pop();
 	}
 
 	return false;
@@ -1024,24 +1031,26 @@ TranslationVector getLongest(const std::vector<TranslationVector>& tvs) {
 	return longest;
 }
 
-TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon_t::ring_type& rA, const polygon_t::ring_type& rB, const std::vector<TranslationVector>& tvs, const std::vector<TranslationVector>& history) {
+TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon_t::ring_type& rA, const polygon_t::ring_type& rB, const std::vector<TranslationVector>& tvs, const std::stack<TranslationVector>& history) {
 	if (!history.empty()) {
-		TranslationVector last = history.back();
-		std::vector<TranslationVector> historyCopy = history;
+		TranslationVector last = history.top();
+		std::stack<TranslationVector> historyCopy = history;
 		if (historyCopy.size() >= 2) {
-			historyCopy.erase(historyCopy.end() - 1);
-			historyCopy.erase(historyCopy.end() - 1);
+			historyCopy.pop();
+			historyCopy.pop();
 //			if(historyCopy.size() > 4) {
 //				historyCopy.erase(historyCopy.begin(), historyCopy.end() - 4);
 //			}
 
 		} else {
-			historyCopy.clear();
+			while(!historyCopy.empty())
+				historyCopy.pop();
 		}
 		DEBUG_MSG("last", last);
 
 		psize_t laterI = std::numeric_limits<psize_t>::max();
 		point_t previous = rA[0];
+
 		point_t next;
 
 		if (last.fromA_) {
@@ -1066,7 +1075,7 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 				} else {
 					later = last.edge_.first;
 				}
-
+				DEBUG_MSG("later", later);
 				laterI = find_point(rA, later);
 			}
 		} else {
@@ -1077,6 +1086,7 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 				later = last.edge_.first;
 			}
 
+			DEBUG_MSG("later", later);
 			laterI = find_point(rA, later);
 		}
 
@@ -1196,7 +1206,7 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 		 }*/
 
 		if (tvs.size() == 1)
-			return *tvs.begin();
+			return tvs.front();
 
 		TranslationVector tv;
 		tv.vector_ = INVALID_POINT;
@@ -1343,7 +1353,7 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 	bool startAvailable = true;
 	psize_t cnt = 0;
 	point_t referenceStart = rB.front();
-	std::vector<TranslationVector> history;
+	std::stack<TranslationVector> history;
 
 	//generate the nfp for the ring
 	while (startAvailable) {
@@ -1366,6 +1376,7 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 		}
 		std::vector<TranslationVector> transVectors = findFeasibleTranslationVectors(rA, rB, touchers);
 
+
 #ifdef NFP_DEBUG
 		DEBUG_MSG("collected vectors", transVectors.size());
 		for(auto pt : transVectors) {
@@ -1382,12 +1393,11 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 		if (next.vector_ == INVALID_POINT)
 			return NO_TRANSLATION;
 
-		DEBUG_MSG("next", next);
-
 		TranslationVector trimmed = trimVector(rA, rB, next);
 		DEBUG_MSG("trimmed", trimmed);
 
-		history.push_back(next);
+		DEBUG_MSG("next", next);
+		history.push(next);
 
 		polygon_t::ring_type nextRB;
 		boost::geometry::transform(rB, nextRB, trans::translate_transformer<coord_t, 2, 2>(trimmed.vector_.x_, trimmed.vector_.y_));
