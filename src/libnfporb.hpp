@@ -1402,6 +1402,8 @@ void removeCoLinear(polygon_t& p) {
 	removeCoLinear(p.outer());
 	for (auto& r : p.inners())
 		removeCoLinear(r);
+
+	bg::correct(p);
 }
 
 nfp_t generateNFP(polygon_t& pA, polygon_t& pB, const bool checkValidity = true) {
