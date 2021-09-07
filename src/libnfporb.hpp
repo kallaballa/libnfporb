@@ -343,10 +343,14 @@ inline long double toLongDouble(const LongDouble& c) {
 inline long double toLongDouble(const rational_t& c) {
 	return bm::numerator(c).convert_to<long double>() / bm::denominator(c).convert_to<long double>();
 }
+std::ostream& operator<<(std::ostream& os, const rational_t& p) {
+	os << toLongDouble(p);
+	return os;
+}
 #endif
 
-std::ostream& operator<<(std::ostream& os, const coord_t& p) {
-	os << toLongDouble(p);
+std::ostream& operator<<(std::ostream& os, const LongDouble& c) {
+	os << toLongDouble(c);
 	return os;
 }
 
@@ -457,19 +461,19 @@ struct smaller<libnfporb::LongDouble>
 }
 
 namespace libnfporb {
+bool equals(const LongDouble& lhs, const LongDouble& rhs) {
+	if (lhs.val() == rhs.val())
+		return true;
+
+	return bg::math::detail::abs<libnfporb::LongDouble>::apply(lhs.val() - rhs.val()) <= libnfporb::NFP_EPSILON * std::max(lhs.val(), rhs.val());
+}
+
 inline bool smaller(const LongDouble& lhs, const LongDouble& rhs) {
 	return boost::geometry::math::detail::smaller<LongDouble>::apply(lhs, rhs);
 }
 
 inline bool larger(const LongDouble& lhs, const LongDouble& rhs) {
 	return smaller(rhs, lhs);
-}
-
-bool equals(const LongDouble& lhs, const LongDouble& rhs) {
-	if (lhs.val() == rhs.val())
-		return true;
-
-	return bg::math::detail::abs<libnfporb::LongDouble>::apply(lhs.val() - rhs.val()) <= libnfporb::NFP_EPSILON * std::max(lhs.val(), rhs.val());
 }
 
 #ifdef LIBNFP_USE_RATIONAL
@@ -954,14 +958,18 @@ std::vector<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_ty
 			if (a1 == a2 && a1 != ON) {
 				LongDouble df = get_inner_angle( { 0, 0 }, normEdge, normFirst);
 				LongDouble ds = get_inner_angle( { 0, 0 }, normEdge, normSecond);
-				DEBUG_MSG("df", df);
-				DEBUG_MSG("ds", ds);
+
 				point_t normIn = normalize(v.edge_.second - v.edge_.first);
 				if (equals(df, ds)) {
 					TranslationVector trimmed = trimVector(ringA, ringB, v);
 					polygon_t::ring_type translated;
 					trans::translate_transformer<coord_t, 2, 2> translate(trimmed.vector_.x_, trimmed.vector_.y_);
 					boost::geometry::transform(ringB, translated, translate);
+					DEBUG_MSG("intersects", bg::intersects(translated, ringA));
+					DEBUG_MSG("overlaps", bg::overlaps(translated, ringA));
+					DEBUG_MSG("covered_byL", bg::covered_by(translated, ringA));
+					DEBUG_MSG("covered_byR", bg::covered_by(ringA, translated));
+
 					if (!(bg::intersects(translated, ringA) && !bg::overlaps(translated, ringA) && !bg::covered_by(translated, ringA) && !bg::covered_by(ringA, translated))) {
 						DEBUG_MSG("discarded0", v);
 						discarded = true;
@@ -970,12 +978,16 @@ std::vector<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_ty
 				} else {
 					if (normIn == normalize(v.vector_)) {
 						if (!equals(df, 0) && larger(ds, df)) {
+							DEBUG_MSG("df", df);
+							DEBUG_MSG("ds", ds);
 							DEBUG_MSG("discarded1", v);
 							discarded = true;
 							break;
 						}
 					} else {
 						if (!equals(ds, 0) && smaller(ds, df)) {
+							DEBUG_MSG("df", df);
+							DEBUG_MSG("ds", ds);
 							DEBUG_MSG("discarded2", v);
 							discarded = true;
 							break;
