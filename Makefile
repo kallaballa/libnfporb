@@ -2,7 +2,7 @@ CXX      := g++
 CXXFLAGS :=  -pthread -fno-strict-aliasing -std=c++1y -pedantic -Wall
 LDFLAGS  := -L/opt/local/lib
 LIBS     := -lm -lgmp
-.PHONY: all release debian-release info debug clean debian-clean distclean 
+.PHONY: all release debian-release info debug clean debian-clean distclean asan
 DESTDIR := /
 PREFIX := /usr/local
 MACHINE := $(shell uname -m)
@@ -66,6 +66,13 @@ ifeq ($(UNAME_S), Darwin)
 hardcore: LDFLAGS += -s
 endif
 hardcore: dirs
+
+asan: CXXFLAGS += -rdynamic -fsanitize=address
+asan: LDFLAGS += -rdynamic -fsanitize=address
+asan: CXXFLAGS += -g3 -O0 -fno-omit-frame-pointer
+asan: LDFLAGS += -Wl,--export-dynamic
+asan: LIBS+= -lbfd -ldw
+asan: dirs
 
 clean: dirs
 
