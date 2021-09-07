@@ -294,7 +294,6 @@ bool equals(const LongDouble& lhs, const LongDouble& rhs);
 #ifdef LIBNFP_USE_RATIONAL
 bool equals(const rational_t& lhs, const rational_t& rhs);
 #endif
-bool equals(const long double& lhs, const long double& rhs);
 
 const coord_t MAX_COORD = 999999999999999999;
 const coord_t MIN_COORD = std::numeric_limits<coord_t>::min();
@@ -486,18 +485,6 @@ bool equals(const rational_t& lhs, const rational_t& rhs) {
 	return lhs == rhs;
 }
 #endif
-
-inline bool smaller(const long double& lhs, const long double& rhs) {
-	return !equals(rhs, lhs) && lhs < rhs;
-}
-
-inline bool larger(const long double& lhs, const long double& rhs) {
-	return smaller(rhs, lhs);
-}
-
-bool equals(const long double& lhs, const long double& rhs) {
-	return lhs == rhs;
-}
 
 typedef bg::model::polygon<point_t, false, true> polygon_t;
 typedef std::vector<polygon_t::ring_type> nfp_t;
@@ -967,7 +954,8 @@ std::vector<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_ty
 			if (a1 == a2 && a1 != ON) {
 				LongDouble df = get_inner_angle( { 0, 0 }, normEdge, normFirst);
 				LongDouble ds = get_inner_angle( { 0, 0 }, normEdge, normSecond);
-
+				DEBUG_MSG("df", df);
+				DEBUG_MSG("ds", ds);
 				point_t normIn = normalize(v.edge_.second - v.edge_.first);
 				if (equals(df, ds)) {
 					TranslationVector trimmed = trimVector(ringA, ringB, v);
@@ -975,17 +963,20 @@ std::vector<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_ty
 					trans::translate_transformer<coord_t, 2, 2> translate(trimmed.vector_.x_, trimmed.vector_.y_);
 					boost::geometry::transform(ringB, translated, translate);
 					if (!(bg::intersects(translated, ringA) && !bg::overlaps(translated, ringA) && !bg::covered_by(translated, ringA) && !bg::covered_by(ringA, translated))) {
+						DEBUG_MSG("discarded0", v);
 						discarded = true;
 						break;
 					}
 				} else {
 					if (normIn == normalize(v.vector_)) {
-						if (larger(ds, df)) {
+						if (!equals(df, 0) && larger(ds, df)) {
+							DEBUG_MSG("discarded1", v);
 							discarded = true;
 							break;
 						}
 					} else {
-						if (smaller(ds, df)) {
+						if (!equals(ds, 0) && smaller(ds, df)) {
+							DEBUG_MSG("discarded2", v);
 							discarded = true;
 							break;
 						}
@@ -1000,14 +991,15 @@ std::vector<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_ty
 	return vectors;
 }
 
-bool find(std::stack<TranslationVector> h, const TranslationVector& tv) {
+size_t find(std::stack<TranslationVector> h, const TranslationVector& tv) {
+	size_t i = 0;
 	while (!h.empty()) {
 		if (equals(h.top().vector_.x_, tv.vector_.x_) && equals(h.top().vector_.y_, tv.vector_.y_))
-			return true;
+			return ++i;
 		h.pop();
 	}
 
-	return false;
+	return 0;
 }
 
 TranslationVector getLongest(const std::vector<TranslationVector>& tvs) {
@@ -1029,18 +1021,18 @@ TranslationVector getLongest(const std::vector<TranslationVector>& tvs) {
 TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon_t::ring_type& rA, const polygon_t::ring_type& rB, const std::vector<TranslationVector>& tvs, const std::stack<TranslationVector>& history) {
 	if (!history.empty()) {
 		TranslationVector last = history.top();
-		std::stack<TranslationVector> historyCopy = history;
-		if (historyCopy.size() >= 2) {
-			historyCopy.pop();
-			historyCopy.pop();
+//		std::stack<TranslationVector> historyCopy = history;
+//		if (historyCopy.size() >= 2) {
+//			historyCopy.pop();
+//			historyCopy.pop();
 //			if(historyCopy.size() > 4) {
 //				historyCopy.erase(historyCopy.begin(), historyCopy.end() - 4);
 //			}
 
-		} else {
-			while(!historyCopy.empty())
-				historyCopy.pop();
-		}
+//		} else {
+//			while(!historyCopy.empty())
+//				historyCopy.pop();
+//		}
 		DEBUG_MSG("last", last);
 
 		psize_t laterI = std::numeric_limits<psize_t>::max();
@@ -1106,20 +1098,19 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 //		std::shuffle(std::begin(viableEdges), std::end(viableEdges), rng);
 
 		//search with consulting the history to prevent oscillation
-		bool foundNonHist = false;
 		std::vector<TranslationVector> viableTrans;
 		std::vector<TranslationVector> nonHistViableTrans;
 
 		for (const auto& ve : viableEdges) {
 			for (const auto& tv : tvs) {
-				if ((tv.fromA_ && (normalize(tv.vector_) == normalize(ve.second - ve.first))) && (tv.edge_ != last.edge_ || tv.vector_.x_ != -last.vector_.x_ || tv.vector_.y_ != -last.vector_.y_) && !find(historyCopy, tv)) {
+				if ((tv.fromA_ && (normalize(tv.vector_) == normalize(ve.second - ve.first))) && (tv.edge_ != last.edge_ || tv.vector_.x_ != -last.vector_.x_ || tv.vector_.y_ != -last.vector_.y_)) {
 					viableTrans.push_back(tv);
 				}
 			}
 			for (const auto& tv : tvs) {
 				if (!tv.fromA_) {
 					point_t later;
-					if (tv.vector_ == (tv.edge_.second - tv.edge_.first) && (tv.edge_ != last.edge_ || tv.vector_.x_ != -last.vector_.x_ || tv.vector_.y_ != -last.vector_.y_) && !find(historyCopy, tv)) {
+					if (tv.vector_ == (tv.edge_.second - tv.edge_.first) && (tv.edge_ != last.edge_ || tv.vector_.x_ != -last.vector_.x_ || tv.vector_.y_ != -last.vector_.y_)) {
 						later = tv.edge_.second;
 					} else if (tv.vector_ == (tv.edge_.first - tv.edge_.second)) {
 						later = tv.edge_.first;
@@ -1131,20 +1122,27 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 					}
 				}
 			}
+		}
 
-			for (const auto& vtv : viableTrans) {
-				if ((foundNonHist = !find(historyCopy, vtv)))
-					break;
-			}
+		size_t histIdx = 0;
+		size_t maxHistIdx = 0;
+		TranslationVector oldest;
 
-			for (const auto& vtv : viableTrans) {
-				if ((!find(historyCopy, vtv)))
-					nonHistViableTrans.push_back(vtv);
+		for (const auto& vtv : viableTrans) {
+			if ((histIdx = find(history, vtv)) == 0)
+				nonHistViableTrans.push_back(vtv);
+
+			if(histIdx > maxHistIdx) {
+				maxHistIdx = histIdx;
+				oldest = vtv;
 			}
 		}
 
-		if(foundNonHist)
+
+		if(!nonHistViableTrans.empty())
 			viableTrans = nonHistViableTrans;
+		else if(maxHistIdx > 0)
+			return oldest;
 
 		if (!viableTrans.empty())
 			return getLongest(viableTrans);
