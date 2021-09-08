@@ -80,7 +80,7 @@ int main(int argc, char** argv) {
   nfp_t nfp = generateNFP(pA, pB, true);
   
   //write a svg containing pA, pB and NFP
-  write_svg("nfp.svg",{pA,pB},nfp);
+  write_svg("nfp.svg", pA, pB, nfp);
   return 0;
 }
 ```

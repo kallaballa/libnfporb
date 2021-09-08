@@ -10,7 +10,7 @@ ls -d data/handcrafted/* | while read line; do
   examples/nfp $line/A.wkt $line/B.wkt &>> test.log
   if [ $? -eq 0 ]; then
     echo Success
-#    mv nfp.svg `basename $line`-nfp.svg  
+    mv nfp.svg `basename $line`-nfp.svg  
   else
     echo Fail
     exit 1

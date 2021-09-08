@@ -1,5 +1,8 @@
 //uncomment next line to use infinite precision (slow)
 //#define LIBNFP_USE_RATIONAL
+
+#define NFP_DEBUG
+
 #include "../src/libnfporb.hpp"
 
 int main(int argc, char** argv) {
@@ -16,7 +19,7 @@ int main(int argc, char** argv) {
 	nfp_t nfp = generateNFP(pA, pB, true);
 
 	//write and svg containing pA, pB and NFP
-	write_svg("nfp.svg",{pA,pB},nfp);
+	write_svg("nfp.svg",pA,pB,nfp);
 	return 0;
 }
 

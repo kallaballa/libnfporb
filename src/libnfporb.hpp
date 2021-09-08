@@ -35,7 +35,7 @@ namespace trans = boost::geometry::strategy::transform;
 namespace libnfporb {
 #ifdef NFP_DEBUG
 #define DEBUG_VAL(x) std::cerr << x << std::endl;
-#define DEBUG_MSG(title, value) std::cerr << title << ":" << value << std::endl;
+#define DEBUG_MSG(title, value) std::cerr << title << ": " << value << std::endl;
 #else
 #define DEBUG_VAL(x)
 #define DEBUG_MSG(title, value)
@@ -490,6 +490,10 @@ bool equals(const rational_t& lhs, const rational_t& rhs) {
 }
 #endif
 
+bool equals(const point_t& lhs, const point_t& rhs) {
+	return equals(lhs.x_, rhs.x_) && equals(lhs.y_, rhs.y_);
+}
+
 typedef bg::model::polygon<point_t, false, true> polygon_t;
 typedef std::vector<polygon_t::ring_type> nfp_t;
 typedef bg::model::linestring<point_t> linestring_t;
@@ -538,39 +542,39 @@ polygon_t nfpRingsToNfpPoly(const nfp_t& nfp) {
 void write_svg(std::string const& filename, const std::vector<segment_t>& segments) {
 	std::ofstream svg(filename.c_str());
 
-	boost::geometry::svg_mapper<pointf_t> mapper(svg, 100, 100, "width=\"200mm\" height=\"200mm\" viewBox=\"-250 -250 500 500\"");
+	boost::geometry::svg_mapper<pointf_t> mapper(svg, 100, 100, "width=\"200mm\" height=\"200mm\" viewBox=\"-250 -250 500 500\" style=\"background-color:white\"");
 	for (const auto& seg : segments) {
 		segmentf_t segf( { toLongDouble(seg.first.x_), toLongDouble(seg.first.y_) }, { toLongDouble(seg.second.x_), toLongDouble(seg.second.y_) });
 		mapper.add(segf);
-		mapper.map(segf, "fill-opacity:0.5;fill:rgb(153,204,0);stroke:rgb(153,204,0);stroke-width:2");
+		mapper.map(segf, "fill-opacity:0.5;fill:rgb(153,204,0);stroke:rgb(153,204,0);stroke-width:0.25");
 	}
 }
 
 void write_svg(std::string const& filename, const polygon_t& p, const polygon_t::ring_type& ring) {
 	std::ofstream svg(filename.c_str());
 
-	boost::geometry::svg_mapper<pointf_t> mapper(svg, 100, 100, "width=\"200mm\" height=\"200mm\" viewBox=\"-250 -250 500 500\"");
+	boost::geometry::svg_mapper<pointf_t> mapper(svg, 100, 100, "width=\"200mm\" height=\"200mm\" viewBox=\"-250 -250 500 500\" style=\"background-color:white\"");
 	auto pf = convert(p);
 	auto rf = convert(ring);
 
 	mapper.add(pf);
-	mapper.map(pf, "fill-opacity:0.5;fill:rgb(153,204,0);stroke:rgb(153,204,0);stroke-width:2");
+	mapper.map(pf, "fill-opacity:0.5;fill:rgb(153,204,0);stroke:rgb(153,204,0);stroke-width:0");
 	mapper.add(rf);
-	mapper.map(rf, "fill-opacity:0.5;fill:rgb(153,204,0);stroke:rgb(153,204,0);stroke-width:2");
+	mapper.map(rf, "fill-opacity:0.5;fill:rgb(204,153,0);stroke:rgb(153,204,0);stroke-width:0");
 }
 
 void write_svg(std::string const& filename, typename std::vector<polygon_t> const& polygons) {
 	std::ofstream svg(filename.c_str());
 
-	boost::geometry::svg_mapper<pointf_t> mapper(svg, 100, 100, "width=\"200mm\" height=\"200mm\" viewBox=\"-250 -250 500 500\"");
+	boost::geometry::svg_mapper<pointf_t> mapper(svg, 100, 100, "width=\"200mm\" height=\"200mm\" viewBox=\"-250 -250 500 500\" style=\"background-color:white\"");
 	for (auto p : polygons) {
 		auto pf = convert(p);
 		mapper.add(pf);
-		mapper.map(pf, "fill-opacity:0.5;fill:rgb(153,204,0);stroke:rgb(153,204,0);stroke-width:2");
+		mapper.map(pf, "fill-opacity:0.5;fill:rgb(153,204,0);stroke:rgb(153,204,0);stroke-width:0.25");
 	}
 }
 
-void write_svg(std::string const& filename, typename std::vector<polygon_t> const& polygons, const nfp_t& nfp) {
+void write_svg(std::string const& filename, const polygon_t& pA, const polygon_t & pB, const nfp_t& nfp) {
 	polygon_t nfppoly;
 	for (const auto& pt : nfp.front()) {
 		nfppoly.outer().push_back(pt);
@@ -584,25 +588,28 @@ void write_svg(std::string const& filename, typename std::vector<polygon_t> cons
 	}
 	std::ofstream svg(filename.c_str());
 
-	boost::geometry::svg_mapper<pointf_t> mapper(svg, 100, 100, "width=\"200mm\" height=\"200mm\" viewBox=\"-250 -250 500 500\"");
-	for (auto p : polygons) {
-		auto pf = convert(p);
-		mapper.add(pf);
-		mapper.map(pf, "fill-opacity:0.5;fill:rgb(153,204,0);stroke:rgb(153,204,0);stroke-width:2");
-	}
+	boost::geometry::svg_mapper<pointf_t> mapper(svg, 100, 100, "width=\"200mm\" height=\"200mm\" viewBox=\"-250 -250 500 500\" style=\"background-color:white\"");
+	auto pAf = convert(pA);
+	mapper.add(pAf);
+	mapper.map(pAf, "fill-opacity:0.5;fill:rgb(153,204,0);stroke:rgb(153,204,0);stroke-width:0");
+
+	auto pBf = convert(pB);
+	mapper.add(pBf);
+	mapper.map(pBf, "fill-opacity:0.5;fill:rgb(204,153,0);stroke:rgb(204,153,0);stroke-width:0");
+
 	bg::correct(nfppoly);
 	auto nfpf = convert(nfppoly);
 	mapper.add(nfpf);
-	mapper.map(nfpf, "fill-opacity:0.5;fill:rgb(204,153,0);stroke:rgb(204,153,0);stroke-width:2");
+	mapper.map(nfpf, "fill-opacity:0.5;fill:rgb(0,153,204);stroke:rgb(0,153,204);stroke-width:0");
 
 	for (auto& r : nfpf.inners()) {
 		if (r.size() == 1) {
 			mapper.add(r.front());
-			mapper.map(r.front(), "fill-opacity:0.5;fill:rgb(204,153,0);stroke:rgb(204,153,0);stroke-width:2");
+			mapper.map(r.front(), "fill-opacity:0.5;fill:rgb(0,153,204);stroke:rgb(0,153,204);stroke-width:0");
 		} else if (r.size() == 2) {
 			segmentf_t seg(r.front(), *(r.begin() + 1));
 			mapper.add(seg);
-			mapper.map(seg, "fill-opacity:0.5;fill:rgb(204,153,0);stroke:rgb(204,153,0);stroke-width:2");
+			mapper.map(seg, "fill-opacity:0.5;fill:rgb(0,153,204);stroke:rgb(0,153,204);stroke-width:0");
 		}
 	}
 }
@@ -711,6 +718,38 @@ void read_wkt_polygon(const string& filename, polygon_t& p) {
 	bg::correct(p);
 }
 
+std::vector<psize_t> find_minimum_x(const polygon_t& p) {
+	std::vector<psize_t> result;
+	coord_t min = MAX_COORD;
+	auto& po = p.outer();
+	for (psize_t i = 0; i < p.outer().size() - 1; ++i) {
+		if (smaller(po[i].x_, min)) {
+			result.clear();
+			min = po[i].x_;
+			result.push_back(i);
+		} else if (equals(po[i].x_, min)) {
+			result.push_back(i);
+		}
+	}
+	return result;
+}
+
+std::vector<psize_t> find_maximum_x(const polygon_t& p) {
+	std::vector<psize_t> result;
+	coord_t max = MIN_COORD;
+	auto& po = p.outer();
+	for (psize_t i = 0; i < p.outer().size() - 1; ++i) {
+		if (larger(po[i].x_, max)) {
+			result.clear();
+			max = po[i].x_;
+			result.push_back(i);
+		} else if (equals(po[i].x_, max)) {
+			result.push_back(i);
+		}
+	}
+	return result;
+}
+
 std::vector<psize_t> find_minimum_y(const polygon_t& p) {
 	std::vector<psize_t> result;
 	coord_t min = MAX_COORD;
@@ -758,10 +797,13 @@ std::vector<TouchingPoint> findTouchingPoints(const polygon_t::ring_type& ringA,
 		for (psize_t j = 0; j < ringB.size() - 1; j++) {
 			psize_t nextJ = j + 1;
 			if (ringA[i] == ringB[j]) {
+				DEBUG_MSG("vertex", segment_t(ringA[i],ringB[j]));
 				touchers.push_back( { TouchingPoint::VERTEX, i, j });
 			} else if (ringA[nextI] != ringB[j] && bg::intersects(segment_t(ringA[i], ringA[nextI]), ringB[j])) {
+				DEBUG_MSG("bona", segment_t(ringA[i],ringB[j]));
 				touchers.push_back( { TouchingPoint::B_ON_A, nextI, j });
 			} else if (ringB[nextJ] != ringA[i] && bg::intersects(segment_t(ringB[j], ringB[nextJ]), ringA[i])) {
+				DEBUG_MSG("aonb", segment_t(ringA[i],ringB[j]));
 				touchers.push_back( { TouchingPoint::A_ON_B, i, nextJ });
 			}
 		}
@@ -897,20 +939,22 @@ std::vector<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_ty
 			al = get_alignment(a1, b2.second);
 			if (al == LEFT) {
 				//no feasible translation
+				DEBUG_MSG("not feasible1", a1.second - a1.first);
 			} else if (al == RIGHT) {
-				potentialVectors.push_back( { a1.second - a1.first, a1, true, "vertex4" });
-			} else {
 				potentialVectors.push_back( { a1.second - a1.first, a1, true, "vertex5" });
+			} else {
+				potentialVectors.push_back( { a1.second - a1.first, a1, true, "vertex6" });
 			}
 
 			//a2 and b1 meet at end and start
 			al = get_alignment(a2, b1.second);
 			if (al == LEFT) {
 				//no feasible translation
+				DEBUG_MSG("not feasible2", b1.first - b1.second);
 			} else if (al == RIGHT) {
-				potentialVectors.push_back( { b1.first - b1.second, b1, false, "vertex6" });
-			} else {
 				potentialVectors.push_back( { b1.first - b1.second, b1, false, "vertex7" });
+			} else {
+				potentialVectors.push_back( { b1.first - b1.second, b1, false, "vertex8" });
 			}
 		} else if (touchers[i].type_ == TouchingPoint::B_ON_A) {
 			segment_t a1 = { vertexB, vertexA };
@@ -943,6 +987,17 @@ std::vector<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_ty
 		}
 	}
 
+#ifdef NFP_DEBUG
+	DEBUG_VAL("touching edges");
+	std::stringstream ss;
+
+	for(const auto& te: touchEdges) {
+		ss << te.first << " (" << (te.first.second - te.first.first) << ") <-> " << te.second << " (" << (te.second.second - te.second.first) << ')';
+		DEBUG_VAL(ss.str());
+		ss.str("");
+	}
+	DEBUG_VAL("");
+#endif
 	//discard immediately intersecting translations
 	std::vector<TranslationVector> vectors;
 	for (const auto& v : potentialVectors) {
@@ -977,7 +1032,7 @@ std::vector<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_ty
 					}
 				} else {
 					if (normIn == normalize(v.vector_)) {
-						if (!equals(df, 0) && larger(ds, df)) {
+						if (larger(ds, df)) {
 							DEBUG_MSG("df", df);
 							DEBUG_MSG("ds", ds);
 							DEBUG_MSG("discarded1", v);
@@ -985,7 +1040,7 @@ std::vector<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_ty
 							break;
 						}
 					} else {
-						if (!equals(ds, 0) && smaller(ds, df)) {
+						if (smaller(ds, df)) {
 							DEBUG_MSG("df", df);
 							DEBUG_MSG("ds", ds);
 							DEBUG_MSG("discarded2", v);
@@ -1033,18 +1088,6 @@ TranslationVector getLongest(const std::vector<TranslationVector>& tvs) {
 TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon_t::ring_type& rA, const polygon_t::ring_type& rB, const std::vector<TranslationVector>& tvs, const std::stack<TranslationVector>& history) {
 	if (!history.empty()) {
 		TranslationVector last = history.top();
-//		std::stack<TranslationVector> historyCopy = history;
-//		if (historyCopy.size() >= 2) {
-//			historyCopy.pop();
-//			historyCopy.pop();
-//			if(historyCopy.size() > 4) {
-//				historyCopy.erase(historyCopy.begin(), historyCopy.end() - 4);
-//			}
-
-//		} else {
-//			while(!historyCopy.empty())
-//				historyCopy.pop();
-//		}
 		DEBUG_MSG("last", last);
 
 		psize_t laterI = std::numeric_limits<psize_t>::max();
@@ -1159,6 +1202,7 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 		if (!viableTrans.empty())
 			return getLongest(viableTrans);
 
+		DEBUG_VAL("### without history ###");
 		//search again without the history
 		for (const auto& ve : viableEdges) {
 			for (const auto& tv : tvs) {
@@ -1362,7 +1406,10 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 
 	//generate the nfp for the ring
 	while (startAvailable) {
-		DEBUG_VAL(cnt);
+		DEBUG_VAL("");
+		DEBUG_VAL("");
+		DEBUG_VAL("#### iteration: " + std::to_string(cnt) + " ####");
+
 		//use first point of rB as reference
 		nfp.back().push_back(rB.front());
 		if (cnt == 15)
@@ -1370,12 +1417,8 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 
 		std::vector<TouchingPoint> touchers = findTouchingPoints(rA, rB);
 
-#ifdef NFP_DEBUG
 		DEBUG_MSG("touchers", touchers.size());
-		for(auto t : touchers) {
-			DEBUG_VAL(t.type_);
-		}
-#endif
+
 		if (touchers.empty()) {
 			throw std::runtime_error("Internal error: No touching points found");
 		}
@@ -1411,6 +1454,8 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 #ifdef NFP_DEBUG
 		write_svg("next" + std::to_string(cnt) + ".svg", pA,rB);
 #endif
+		if(bg::overlaps(pA, rB))
+			throw std::runtime_error("Internal Error: Slide resulted in overlap");
 
 		++cnt;
 		if (referenceStart == rB.front() || (inside && bg::touches(rB.front(), nfp.front()))) {
@@ -1474,17 +1519,65 @@ nfp_t generateNFP(polygon_t& pA, polygon_t& pB, const bool checkValidity = true)
 	DEBUG_VAL(bg::wkt(pB));
 
 	//prevent double vertex connections at start because we might come back the same way we go which would end the nfp prematurely
-	std::vector<psize_t> ptyaminI = find_minimum_y(pA);
-	std::vector<psize_t> ptybmaxI = find_maximum_y(pB);
+	std::vector<psize_t> yAminI = find_minimum_y(pA);
+	std::vector<psize_t> yBminI = find_minimum_y(pB);
+	std::vector<psize_t> xAminI = find_minimum_x(pA);
+	std::vector<psize_t> xBminI = find_minimum_x(pB);
+	std::vector<psize_t> yAmaxI = find_maximum_y(pA);
+	std::vector<psize_t> yBmaxI = find_maximum_y(pB);
+	std::vector<psize_t> xAmaxI = find_maximum_x(pA);
+	std::vector<psize_t> xBmaxI = find_maximum_x(pB);
+
+	point_t preTrans;
+	LongDouble leftA = pA.outer()[xAminI.front()].x_;
+	LongDouble rightA = pA.outer()[xAmaxI.front()].x_;
+	if(rightA < 0) {
+		preTrans.x_ = rightA * -1;
+	} else if(leftA < 0) {
+		preTrans.x_ = leftA * -1;
+	}
+
+	LongDouble topA = pA.outer()[yAmaxI.front()].y_;
+	LongDouble bottomA = pA.outer()[yAminI.front()].y_;
+	if(topA < 0) {
+		preTrans.y_ = topA * -1;
+	} else if(bottomA < 0) {
+		preTrans.y_ = bottomA * -1;
+	}
+
+	LongDouble leftB = pB.outer()[xBminI.front()].x_;
+	LongDouble rightB = pB.outer()[xBmaxI.front()].x_;
+	if(rightB < 0) {
+		preTrans.x_ += rightB * -1;
+	} else if(leftB < 0) {
+		preTrans.x_ += leftB * -1;
+	}
+
+	LongDouble topB = pB.outer()[yBmaxI.front()].y_;
+	LongDouble bottomB = pB.outer()[yBminI.front()].y_;
+	if(topB < 0) {
+		preTrans.y_ += topB * -1;
+	} else if(bottomB < 0) {
+		preTrans.y_ += bottomB * -1;
+	}
+
+
+	polygon_t pAtrans;
+	polygon_t pBtrans;
+	trans::translate_transformer<coord_t, 2, 2> transformer(preTrans.x_, preTrans.y_);
+	boost::geometry::transform(pA, pAtrans, transformer);
+	boost::geometry::transform(pB, pBtrans, transformer);
+	pA = std::move(pAtrans);
+	pB = std::move(pBtrans);
 
 	point_t pAstart;
 	point_t pBstart;
 
-	if (ptyaminI.size() > 1 || ptybmaxI.size() > 1) {
+	if (yAminI.size() > 1 || yBmaxI.size() > 1) {
 		//find right-most of A and left-most of B to prevent double connection at start
 		coord_t maxX = MIN_COORD;
 		psize_t iRightMost = 0;
-		for (psize_t& ia : ptyaminI) {
+		for (psize_t& ia : yAminI) {
 			const point_t& candidateA = pA.outer()[ia];
 			if (larger(candidateA.x_, maxX)) {
 				maxX = candidateA.x_;
@@ -1494,7 +1587,7 @@ nfp_t generateNFP(polygon_t& pA, polygon_t& pB, const bool checkValidity = true)
 
 		coord_t minX = MAX_COORD;
 		psize_t iLeftMost = 0;
-		for (psize_t& ib : ptybmaxI) {
+		for (psize_t& ib : yBmaxI) {
 			const point_t& candidateB = pB.outer()[ib];
 			if (smaller(candidateB.x_, minX)) {
 				minX = candidateB.x_;
@@ -1504,12 +1597,15 @@ nfp_t generateNFP(polygon_t& pA, polygon_t& pB, const bool checkValidity = true)
 		pAstart = pA.outer()[iRightMost];
 		pBstart = pB.outer()[iLeftMost];
 	} else {
-		pAstart = pA.outer()[ptyaminI.front()];
-		pBstart = pB.outer()[ptybmaxI.front()];
+		pAstart = pA.outer()[yAminI.front()];
+		pBstart = pB.outer()[yBmaxI.front()];
 	}
 
 	nfp.push_back( { });
 	point_t transB = { pAstart - pBstart };
+
+
+
 
 	if (slide(pA, pA.outer(), pB.outer(), nfp, transB, false) != LOOP) {
 		throw std::runtime_error("Unable to complete outer nfp loop");
@@ -1576,7 +1672,7 @@ nfp_t generateNFP(polygon_t& pA, polygon_t& pB, const bool checkValidity = true)
 	}
 
 #ifdef NFP_DEBUG
-	write_svg("nfp.svg", {pA,pB}, nfp);
+	write_svg("nfp.svg", pA,pB, nfp);
 #endif
 
 	return nfp;

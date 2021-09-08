@@ -47,7 +47,7 @@ int main(int argc, char** argv) {
   //When the third parameters is false validity check is skipped for a little performance increase
 	nfp_t nfp = generateNFP(pA, pB, true);
 
-	write_svg("nfp.svg",{pA,pB},nfp);
+	write_svg("nfp.svg",pA,pB,nfp);
 	return 0;
 }
 
