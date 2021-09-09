@@ -1220,17 +1220,24 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 
 		if(!nonHistViableTrans.empty()) {
 			viableTrans = nonHistViableTrans;
-		} else if(maxHistIdx > 0 && maxHistIdx < history.size()) {
-			if(find(history, oldest, maxHistIdx) != 0) { //did we previously pass the oldest? (loop!)
-				DEBUG_MSG("oldest", oldest);
-				return oldest;
-			}
+		} else if(maxHistIdx > 0 && find(history, oldest, maxHistIdx) != 0) { //did we previously pass the oldest? (loop!)
+			DEBUG_MSG("oldest", oldest);
+			return oldest;
 		}
 
-		if (!viableTrans.empty()) {
+	    while (!viableTrans.empty()) {
 			auto longest = getLongest(viableTrans);
-			DEBUG_MSG("longest2", longest);
-			return longest;
+			auto idx = find(history, longest, find(history, longest)); //did we previously pass the candidate? (loop!)
+			if(idx == 0) {
+				DEBUG_MSG("longest2", longest);
+				return longest;
+			} else {
+				for(size_t i = 0; i < viableTrans.size(); ++i) {
+					if(viableTrans[i] == longest) {
+						viableTrans.erase(viableTrans.begin() + i);
+					}
+				}
+			}
 		}
 
 		DEBUG_VAL("### without history ###");
@@ -1259,31 +1266,6 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 		}
 		if (!viableTrans.empty())
 			return getLongest(viableTrans);
-
-		/*
-		 //search again without the history and without checking last edge
-		 for(const auto& ve: viableEdges) {
-		 for(const auto& tv : tvs) {
-		 if((tv.fromA_ && (normalize(tv.vector_) == normalize(ve.second - ve.first)))) {
-		 return tv;
-		 }
-		 }
-		 for (const auto& tv : tvs) {
-		 if (!tv.fromA_) {
-		 point_t later;
-		 if (tv.vector_ == (tv.edge_.second - tv.edge_.first)) {
-		 later = tv.edge_.second;
-		 } else if (tv.vector_ == (tv.edge_.first - tv.edge_.second)) {
-		 later = tv.edge_.first;
-		 } else
-		 continue;
-
-		 if (later == ve.first || later == ve.second) {
-		 return tv;
-		 }
-		 }
-		 }
-		 }*/
 
 		if (tvs.size() == 1)
 			return tvs.front();
