@@ -7,8 +7,6 @@
 #include <fstream>
 #include <streambuf>
 #include <vector>
-#include <stack>
-#include <set>
 #include <exception>
 #include <random>
 #include <limits>
@@ -365,6 +363,8 @@ std::ostream& operator<<(std::ostream& os, const point_t& p) {
 	os << "{" << toLongDouble(p.x_) << "," << toLongDouble(p.y_) << "}";
 	return os;
 }
+
+
 const point_t INVALID_POINT = { MAX_COORD, MAX_COORD };
 
 typedef bg::model::segment<point_t> segment_t;
@@ -492,6 +492,10 @@ bool equals(const rational_t& lhs, const rational_t& rhs) {
 
 bool equals(const point_t& lhs, const point_t& rhs) {
 	return equals(lhs.x_, rhs.x_) && equals(lhs.y_, rhs.y_);
+}
+
+bool equals(const segment_t& lhs, const segment_t& rhs) {
+	return equals(lhs.first, rhs.first) && equals(lhs.second, rhs.second);
 }
 
 typedef bg::model::polygon<point_t, false, true> polygon_t;
@@ -701,6 +705,16 @@ std::ostream& operator<<(std::ostream& os, const TranslationVector& tv) {
 	os << "{" << tv.edge_ << " -> " << tv.vector_ << "} = " << tv.name_;
 	return os;
 }
+
+bool operator==(const TranslationVector& lhs, const TranslationVector& rhs) {
+	return equals(lhs.edge_, rhs.edge_) && equals(lhs.vector_, rhs.vector_);
+}
+
+bool operator!=(const TranslationVector& lhs, const TranslationVector& rhs) {
+	return !operator==(lhs,rhs);
+}
+
+typedef std::vector<TranslationVector> History;
 
 void read_wkt_polygon(const string& filename, polygon_t& p) {
 	std::ifstream t(filename);
@@ -1032,7 +1046,7 @@ std::vector<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_ty
 					}
 				} else {
 					if (normIn == normalize(v.vector_)) {
-						if (larger(ds, df)) {
+						if (!equals(df, 0) && larger(ds, df)) {
 							DEBUG_MSG("df", df);
 							DEBUG_MSG("ds", ds);
 							DEBUG_MSG("discarded1", v);
@@ -1040,7 +1054,7 @@ std::vector<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_ty
 							break;
 						}
 					} else {
-						if (smaller(ds, df)) {
+						if (!equals(ds, 0) && smaller(ds, df)) {
 							DEBUG_MSG("df", df);
 							DEBUG_MSG("ds", ds);
 							DEBUG_MSG("discarded2", v);
@@ -1058,12 +1072,12 @@ std::vector<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_ty
 	return vectors;
 }
 
-size_t find(std::stack<TranslationVector> h, const TranslationVector& tv) {
-	size_t i = 0;
-	while (!h.empty()) {
-		if (equals(h.top().vector_.x_, tv.vector_.x_) && equals(h.top().vector_.y_, tv.vector_.y_))
-			return ++i;
-		h.pop();
+size_t find(const History& h, const TranslationVector& tv, const off_t& offset = 0) {
+	assert(size_t(offset) <= h.size());
+	for(size_t i = offset; i < h.size(); ++i) {
+		if (equals(h[i].vector_, tv.vector_) && equals(h[i].edge_, tv.edge_)) {
+			return h.size() - i;
+		}
 	}
 
 	return 0;
@@ -1085,9 +1099,9 @@ TranslationVector getLongest(const std::vector<TranslationVector>& tvs) {
 	return longest;
 }
 
-TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon_t::ring_type& rA, const polygon_t::ring_type& rB, const std::vector<TranslationVector>& tvs, const std::stack<TranslationVector>& history) {
-	if (!history.empty()) {
-		TranslationVector last = history.top();
+TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon_t::ring_type& rA, const polygon_t::ring_type& rB, const std::vector<TranslationVector>& tvs, const History& history) {
+	if (history.size() > 1) {
+		TranslationVector last = history.back();
 		DEBUG_MSG("last", last);
 
 		psize_t laterI = std::numeric_limits<psize_t>::max();
@@ -1182,25 +1196,42 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 		size_t histIdx = 0;
 		size_t maxHistIdx = 0;
 		TranslationVector oldest;
-
+#ifdef NFP_DEBUG
+		DEBUG_VAL("viable translations:")
 		for (const auto& vtv : viableTrans) {
-			if ((histIdx = find(history, vtv)) == 0)
+			DEBUG_VAL(vtv);
+		}
+		DEBUG_VAL("");
+#endif
+		DEBUG_VAL("non history viable translations:");
+		for (const auto& vtv : viableTrans) {
+			if ((histIdx = find(history, vtv)) == 0) {
 				nonHistViableTrans.push_back(vtv);
+				DEBUG_VAL(vtv);
+
+			}
 
 			if(histIdx > maxHistIdx) {
 				maxHistIdx = histIdx;
 				oldest = vtv;
 			}
 		}
+		DEBUG_VAL("");
 
-
-		if(!nonHistViableTrans.empty())
+		if(!nonHistViableTrans.empty()) {
 			viableTrans = nonHistViableTrans;
-		else if(maxHistIdx > 0)
-			return oldest;
+		} else if(maxHistIdx > 0 && maxHistIdx < history.size()) {
+			if(find(history, oldest, maxHistIdx) != 0) { //did we previously pass the oldest? (loop!)
+				DEBUG_MSG("oldest", oldest);
+				return oldest;
+			}
+		}
 
-		if (!viableTrans.empty())
-			return getLongest(viableTrans);
+		if (!viableTrans.empty()) {
+			auto longest = getLongest(viableTrans);
+			DEBUG_MSG("longest2", longest);
+			return longest;
+		}
 
 		DEBUG_VAL("### without history ###");
 		//search again without the history
@@ -1402,7 +1433,7 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 	bool startAvailable = true;
 	psize_t cnt = 0;
 	point_t referenceStart = rB.front();
-	std::stack<TranslationVector> history;
+	History history;
 
 	//generate the nfp for the ring
 	while (startAvailable) {
@@ -1445,7 +1476,7 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 		DEBUG_MSG("trimmed", trimmed);
 
 		DEBUG_MSG("next", next);
-		history.push(next);
+		history.push_back(next);
 
 		polygon_t::ring_type nextRB;
 		boost::geometry::transform(rB, nextRB, trans::translate_transformer<coord_t, 2, 2>(trimmed.vector_.x_, trimmed.vector_.y_));
