@@ -1077,15 +1077,27 @@ std::vector<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_ty
 	return vectors;
 }
 
-size_t find(const History& h, const TranslationVector& tv, const off_t& offset = 0) {
-	assert(size_t(offset) <= h.size());
+off_t find(const History& h, const TranslationVector& tv, const off_t& offset = 0) {
+	if(offset < 0)
+		return -1;
+
 	for(size_t i = offset; i < h.size(); ++i) {
 		if (h[i].vector_ == tv.vector_) {
-			return h.size() - i;
+			return i;
 		}
 	}
 
-	return 0;
+	return -1;
+}
+
+size_t count(const History& h, const TranslationVector& tv) {
+	size_t cnt = 0;
+	off_t offset = 0;
+	while((offset = find(h,tv, offset + 1)) != -1)
+		++cnt;
+
+	return cnt;
+
 }
 
 TranslationVector getLongest(const std::vector<TranslationVector>& tvs) {
@@ -1198,9 +1210,7 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 			}
 		}
 
-		size_t histIdx = 0;
-		size_t maxHistIdx = 0;
-		TranslationVector oldest;
+
 
 #ifdef NFP_DEBUG
 		DEBUG_VAL("viable translations:")
@@ -1208,7 +1218,6 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 			DEBUG_VAL(vtv);
 		}
 		DEBUG_VAL("");
-#endif
 
 		if(history.size() > 5) {
 			DEBUG_VAL("last 6 from history:");
@@ -1217,15 +1226,32 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 			}
 			DEBUG_VAL("");
 		}
+#endif
+
+		size_t histAge = 0;
+		size_t maxHistAge = 0;
+		size_t histCnt = 0;
+		size_t minHistCnt = history.size();
+		TranslationVector oldest;
+		TranslationVector least_used;
+
 		DEBUG_VAL("non history viable translations:");
 		for (const auto& vtv : viableTrans) {
-			if ((histIdx = find(history, vtv)) == 0) {
+			histAge = history.size() - find(history, vtv);
+			histCnt = count(history, vtv);
+
+			if (histAge == 0) {
 				nonHistViableTrans.push_back(vtv);
 				DEBUG_VAL(vtv);
 			}
 
-			if(histIdx > maxHistIdx) {
-				maxHistIdx = histIdx;
+			if(histCnt < minHistCnt) {
+				minHistCnt = histCnt;
+				least_used = vtv;
+			}
+
+			if(histAge > maxHistAge) {
+				maxHistAge = histAge;
 				oldest = vtv;
 			}
 		}
@@ -1234,40 +1260,18 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 		if(!nonHistViableTrans.empty()) {
 			viableTrans = nonHistViableTrans;
 		}
-
+		auto viableTransCopy = viableTrans;
 	    while (!viableTrans.empty()) {
 			auto longest = getLongest(viableTrans);
-			size_t lookback = 10;
-			if(history.size() < lookback) {
-				lookback = history.size() - 1;
-			}
-
-			size_t idx = 0;
-			if(longest.vector_ == point_t{402, 0}) {
-				std::cerr << "break" << std::endl;
-			}
-			if((idx = find(history, longest, history.size() - lookback)) == 0) { //did we previously pass the candidate? (loop!)
-				DEBUG_MSG("idx", idx);
-				DEBUG_MSG("longest1", longest);
+			off_t cnt = 0;
+			if((cnt = count(history, longest)) < 2) { //did we previously pass the candidate twice? (loop!)
+				DEBUG_MSG("longest", longest);
 				return longest;
 			} else {
-				bool all = true;
 				for(size_t i = 0; i < viableTrans.size(); ++i) {
-					if(viableTrans[i] != longest) {
-						all = false;
+					if(viableTrans[i] == longest) {
+						viableTrans.erase(viableTrans.begin() + i);
 						break;
-					}
-				}
-
-				if(all) {
-					DEBUG_MSG("longest2", longest);
-					return longest;
-				} else {
-					for(size_t i = 0; i < viableTrans.size(); ++i) {
-						if(viableTrans[i] == longest) {
-							viableTrans.erase(viableTrans.begin() + i);
-							break;
-						}
 					}
 				}
 			}
@@ -1275,7 +1279,10 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 
 		if (tvs.size() == 1) {
 			return tvs.front();
-		} else if(maxHistIdx > 0) { //did we previously pass the oldest? (loop!)
+		} else if(least_used.vector_ != INVALID_POINT) {
+			DEBUG_MSG("least used", least_used);
+			return least_used;
+		} else if(maxHistAge > 0) {
 			DEBUG_MSG("oldest", oldest);
 			return oldest;
 		}
