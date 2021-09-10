@@ -88,7 +88,7 @@ Run the example program:
 
     examples/nfp data/crossing/A.wkt data/crossing/B.wkt
 
-## References
+## Reference Implementations
 
 * https://dspace.vutbr.cz/xmlui/handle/11012/191851 (Master thesis: Software for efficient use of material in 2D machining)
 * https://github.com/tamasmeszaros/libnest2d (2D irregular bin packaging and nesting library written in modern C++)
