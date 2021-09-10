@@ -449,7 +449,7 @@ struct smaller<libnfporb::LongDouble>
 {
 	static inline bool apply(libnfporb::LongDouble const& lhs, libnfporb::LongDouble const& rhs)
 			{
-		if (lhs.val() == rhs.val() || bg::math::detail::abs<libnfporb::LongDouble>::apply(lhs.val() - rhs.val()) <= libnfporb::NFP_EPSILON * std::max(lhs.val(), rhs.val()))
+		if (lhs.val() == rhs.val() || bg::math::detail::abs<libnfporb::LongDouble>::apply(lhs.val() - rhs.val()) <= libnfporb::NFP_EPSILON * std::fmax(lhs.val(), rhs.val()))
 			return false;
 
 		return lhs < rhs;
@@ -465,7 +465,7 @@ bool equals(const LongDouble& lhs, const LongDouble& rhs) {
 	if (lhs.val() == rhs.val())
 		return true;
 
-	return bg::math::detail::abs<libnfporb::LongDouble>::apply(lhs.val() - rhs.val()) <= libnfporb::NFP_EPSILON * std::max(lhs.val(), rhs.val());
+	return bg::math::detail::abs<libnfporb::LongDouble>::apply(lhs.val() - rhs.val()) <= libnfporb::NFP_EPSILON * std::fmax(lhs.val(), rhs.val());
 }
 
 inline bool smaller(const LongDouble& lhs, const LongDouble& rhs) {
@@ -604,16 +604,16 @@ void write_svg(std::string const& filename, const polygon_t& pA, const polygon_t
 	bg::correct(nfppoly);
 	auto nfpf = convert(nfppoly);
 	mapper.add(nfpf);
-	mapper.map(nfpf, "fill-opacity:0.5;fill:rgb(0,153,204);stroke:rgb(0,153,204);stroke-width:0");
+	mapper.map(nfpf, "fill-opacity:0.5;fill:rgb(0,153,204);stroke:rgb(0,38,50);stroke-width:0.5");
 
 	for (auto& r : nfpf.inners()) {
 		if (r.size() == 1) {
 			mapper.add(r.front());
-			mapper.map(r.front(), "fill-opacity:0.5;fill:rgb(0,153,204);stroke:rgb(0,153,204);stroke-width:0");
+			mapper.map(r.front(), "fill-opacity:0.5;fill:rgb(0,153,204);stroke:rgb(0,38,50);stroke-width:0.5");
 		} else if (r.size() == 2) {
 			segmentf_t seg(r.front(), *(r.begin() + 1));
 			mapper.add(seg);
-			mapper.map(seg, "fill-opacity:0.5;fill:rgb(0,153,204);stroke:rgb(0,153,204);stroke-width:0");
+			mapper.map(seg, "fill-opacity:0.5;fill:rgb(0,153,204);stroke:rgb(0,38,50);stroke-width:0.5");
 		}
 	}
 }
@@ -953,7 +953,7 @@ std::vector<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_ty
 			al = get_alignment(a1, b2.second);
 			if (al == LEFT) {
 				//no feasible translation
-				DEBUG_MSG("not feasible1", a1.second - a1.first);
+				DEBUG_MSG("not feasible", a1.second - a1.first);
 			} else if (al == RIGHT) {
 				potentialVectors.push_back( { a1.second - a1.first, a1, true, "vertex5" });
 			} else {
@@ -963,12 +963,11 @@ std::vector<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_ty
 			//a2 and b1 meet at end and start
 			al = get_alignment(a2, b1.second);
 			if (al == LEFT) {
-				//no feasible translation
-				DEBUG_MSG("not feasible2", b1.first - b1.second);
-			} else if (al == RIGHT) {
 				potentialVectors.push_back( { b1.first - b1.second, b1, false, "vertex7" });
-			} else {
+			} else if (al == RIGHT) {
 				potentialVectors.push_back( { b1.first - b1.second, b1, false, "vertex8" });
+			} else {
+				potentialVectors.push_back( { b1.first - b1.second, b1, false, "vertex9" });
 			}
 		} else if (touchers[i].type_ == TouchingPoint::B_ON_A) {
 			segment_t a1 = { vertexB, vertexA };
@@ -1002,13 +1001,19 @@ std::vector<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_ty
 	}
 
 #ifdef NFP_DEBUG
-	DEBUG_VAL("touching edges");
+	DEBUG_VAL("touching edges:");
 	std::stringstream ss;
 
 	for(const auto& te: touchEdges) {
 		ss << te.first << " (" << (te.first.second - te.first.first) << ") <-> " << te.second << " (" << (te.second.second - te.second.first) << ')';
 		DEBUG_VAL(ss.str());
 		ss.str("");
+	}
+	DEBUG_VAL("");
+
+	DEBUG_VAL("potential vectors:");
+	for(const auto& pv: potentialVectors) {
+		DEBUG_VAL(pv);
 	}
 	DEBUG_VAL("");
 #endif
@@ -1075,7 +1080,7 @@ std::vector<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_ty
 size_t find(const History& h, const TranslationVector& tv, const off_t& offset = 0) {
 	assert(size_t(offset) <= h.size());
 	for(size_t i = offset; i < h.size(); ++i) {
-		if (equals(h[i].vector_, tv.vector_) && equals(h[i].edge_, tv.edge_)) {
+		if (h[i].vector_ == tv.vector_) {
 			return h.size() - i;
 		}
 	}
@@ -1196,6 +1201,7 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 		size_t histIdx = 0;
 		size_t maxHistIdx = 0;
 		TranslationVector oldest;
+
 #ifdef NFP_DEBUG
 		DEBUG_VAL("viable translations:")
 		for (const auto& vtv : viableTrans) {
@@ -1203,12 +1209,19 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 		}
 		DEBUG_VAL("");
 #endif
+
+		if(history.size() > 5) {
+			DEBUG_VAL("last 6 from history:");
+			for (size_t i = 0; i < 6; ++i) {
+				DEBUG_VAL(history[history.size() - 1 - i]);
+			}
+			DEBUG_VAL("");
+		}
 		DEBUG_VAL("non history viable translations:");
 		for (const auto& vtv : viableTrans) {
 			if ((histIdx = find(history, vtv)) == 0) {
 				nonHistViableTrans.push_back(vtv);
 				DEBUG_VAL(vtv);
-
 			}
 
 			if(histIdx > maxHistIdx) {
@@ -1217,58 +1230,55 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 			}
 		}
 		DEBUG_VAL("");
-
+//
 		if(!nonHistViableTrans.empty()) {
 			viableTrans = nonHistViableTrans;
-		} else if(maxHistIdx > 0 && find(history, oldest, maxHistIdx) != 0) { //did we previously pass the oldest? (loop!)
-			DEBUG_MSG("oldest", oldest);
-			return oldest;
 		}
 
 	    while (!viableTrans.empty()) {
 			auto longest = getLongest(viableTrans);
-			auto idx = find(history, longest, find(history, longest)); //did we previously pass the candidate? (loop!)
-			if(idx == 0) {
-				DEBUG_MSG("longest2", longest);
+			size_t lookback = 10;
+			if(history.size() < lookback) {
+				lookback = history.size() - 1;
+			}
+
+			size_t idx = 0;
+			if(longest.vector_ == point_t{402, 0}) {
+				std::cerr << "break" << std::endl;
+			}
+			if((idx = find(history, longest, history.size() - lookback)) == 0) { //did we previously pass the candidate? (loop!)
+				DEBUG_MSG("idx", idx);
+				DEBUG_MSG("longest1", longest);
 				return longest;
 			} else {
+				bool all = true;
 				for(size_t i = 0; i < viableTrans.size(); ++i) {
-					if(viableTrans[i] == longest) {
-						viableTrans.erase(viableTrans.begin() + i);
+					if(viableTrans[i] != longest) {
+						all = false;
+						break;
+					}
+				}
+
+				if(all) {
+					DEBUG_MSG("longest2", longest);
+					return longest;
+				} else {
+					for(size_t i = 0; i < viableTrans.size(); ++i) {
+						if(viableTrans[i] == longest) {
+							viableTrans.erase(viableTrans.begin() + i);
+							break;
+						}
 					}
 				}
 			}
 		}
 
-		DEBUG_VAL("### without history ###");
-		//search again without the history
-		for (const auto& ve : viableEdges) {
-			for (const auto& tv : tvs) {
-				if ((tv.fromA_ && (normalize(tv.vector_) == normalize(ve.second - ve.first))) && (tv.edge_ != last.edge_ || tv.vector_.x_ != -last.vector_.x_ || tv.vector_.y_ != -last.vector_.y_)) {
-					viableTrans.push_back(tv);
-				}
-			}
-			for (const auto& tv : tvs) {
-				if (!tv.fromA_) {
-					point_t later;
-					if (tv.vector_ == (tv.edge_.second - tv.edge_.first) && (tv.edge_ != last.edge_ || tv.vector_.x_ != -last.vector_.x_ || tv.vector_.y_ != -last.vector_.y_)) {
-						later = tv.edge_.second;
-					} else if (tv.vector_ == (tv.edge_.first - tv.edge_.second)) {
-						later = tv.edge_.first;
-					} else
-						continue;
-
-					if (later == ve.first || later == ve.second) {
-						viableTrans.push_back(tv);
-					}
-				}
-			}
-		}
-		if (!viableTrans.empty())
-			return getLongest(viableTrans);
-
-		if (tvs.size() == 1)
+		if (tvs.size() == 1) {
 			return tvs.front();
+		} else if(maxHistIdx > 0) { //did we previously pass the oldest? (loop!)
+			DEBUG_MSG("oldest", oldest);
+			return oldest;
+		}
 
 		TranslationVector tv;
 		tv.vector_ = INVALID_POINT;
@@ -1619,9 +1629,9 @@ nfp_t generateNFP(polygon_t& pA, polygon_t& pB, const bool checkValidity = true)
 
 
 
-
-	if (slide(pA, pA.outer(), pB.outer(), nfp, transB, false) != LOOP) {
-		throw std::runtime_error("Unable to complete outer nfp loop");
+	SlideResult res;
+	if ((res = slide(pA, pA.outer(), pB.outer(), nfp, transB, false))!= LOOP) {
+		throw std::runtime_error("Unable to complete outer nfp loop: " + std::to_string(res));
 	}
 
 	DEBUG_VAL("##### outer #####");

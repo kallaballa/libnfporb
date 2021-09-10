@@ -1,4 +1,5 @@
 examples/writeGolden
+gengolden.log
 *.svg
 examples/*.dep
 examples/*.o
