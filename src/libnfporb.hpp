@@ -2,7 +2,6 @@
 #define NFP_HPP_
 
 #include <iostream>
-#include <list>
 #include <string>
 #include <fstream>
 #include <streambuf>
@@ -32,8 +31,8 @@ namespace trans = boost::geometry::strategy::transform;
 
 namespace libnfporb {
 #ifdef NFP_DEBUG
-#define DEBUG_VAL(x) std::cerr << x << std::endl;
-#define DEBUG_MSG(title, value) std::cerr << title << ": " << value << std::endl;
+#define DEBUG_VAL(x) std::cerr << x << std::endl
+#define DEBUG_MSG(title, value) std::cerr << title << ": " << value << std::endl
 #else
 #define DEBUG_VAL(x)
 #define DEBUG_MSG(title, value)
@@ -402,8 +401,7 @@ struct square_root<libnfporb::LongDouble>
 {
 	typedef libnfporb::LongDouble return_type;
 
-	static inline libnfporb::LongDouble apply(libnfporb::LongDouble const& a)
-			{
+	static inline libnfporb::LongDouble apply(libnfporb::LongDouble const& a) {
 		return std::sqrt(a.val());
 	}
 };
@@ -424,8 +422,7 @@ struct square_root<libnfporb::rational_t>
 template<>
 struct abs<libnfporb::LongDouble>
 {
-	static libnfporb::LongDouble apply(libnfporb::LongDouble const& value)
-			{
+	static libnfporb::LongDouble apply(libnfporb::LongDouble const& value) {
 		libnfporb::LongDouble const zero = libnfporb::LongDouble();
 		return value.val() < zero.val() ? -value.val() : value.val();
 	}
@@ -435,8 +432,7 @@ template<>
 struct equals<libnfporb::LongDouble, false>
 {
 	template<typename Policy>
-	static inline bool apply(libnfporb::LongDouble const& lhs, libnfporb::LongDouble const& rhs, Policy const& policy)
-			{
+	static inline bool apply(libnfporb::LongDouble const& lhs, libnfporb::LongDouble const& rhs, Policy const& policy) {
 		if (lhs.val() == rhs.val())
 			return true;
 
@@ -447,8 +443,7 @@ struct equals<libnfporb::LongDouble, false>
 template<>
 struct smaller<libnfporb::LongDouble>
 {
-	static inline bool apply(libnfporb::LongDouble const& lhs, libnfporb::LongDouble const& rhs)
-			{
+	static inline bool apply(libnfporb::LongDouble const& lhs, libnfporb::LongDouble const& rhs) {
 		if (lhs.val() == rhs.val() || bg::math::detail::abs<libnfporb::LongDouble>::apply(lhs.val() - rhs.val()) <= libnfporb::NFP_EPSILON * std::fmax(lhs.val(), rhs.val()))
 			return false;
 
@@ -625,14 +620,6 @@ std::ostream& operator<<(std::ostream& os, const segment_t& seg) {
 
 bool operator<(const segment_t& lhs, const segment_t& rhs) {
 	return lhs.first < rhs.first || ((lhs.first == rhs.first) && (lhs.second < rhs.second));
-}
-
-bool operator==(const segment_t& lhs, const segment_t& rhs) {
-	return (lhs.first == rhs.first && lhs.second == rhs.second) || (lhs.first == rhs.second && lhs.second == rhs.first);
-}
-
-bool operator!=(const segment_t& lhs, const segment_t& rhs) {
-	return !operator==(lhs, rhs);
 }
 
 enum Alignment {
@@ -1082,7 +1069,7 @@ off_t find(const History& h, const TranslationVector& tv, const off_t& offset = 
 		return -1;
 
 	for(size_t i = offset; i < h.size(); ++i) {
-		if (h[i].vector_ == tv.vector_) {
+		if (h[i] == tv) {
 			return i;
 		}
 	}
@@ -1121,99 +1108,14 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 		TranslationVector last = history.back();
 		DEBUG_MSG("last", last);
 
-		psize_t laterI = std::numeric_limits<psize_t>::max();
-		point_t previous = rA[0];
-
-		point_t next;
-
-		if (last.fromA_) {
-			for (psize_t i = 1; i < rA.size() + 1; ++i) {
-				if (i >= rA.size())
-					next = rA[i % rA.size()];
-				else
-					next = rA[i];
-
-				segment_t candidate(previous, next);
-				if (candidate == last.edge_) {
-					laterI = i;
-					break;
-				}
-				previous = next;
-			}
-
-			if (laterI == std::numeric_limits<psize_t>::max()) {
-				point_t later;
-				if (last.vector_ == (last.edge_.second - last.edge_.first)) {
-					later = last.edge_.second;
-				} else {
-					later = last.edge_.first;
-				}
-				DEBUG_MSG("later", later);
-				laterI = find_point(rA, later);
-			}
-		} else {
-			point_t later;
-			if (last.vector_ == (last.edge_.second - last.edge_.first)) {
-				later = last.edge_.second;
-			} else {
-				later = last.edge_.first;
-			}
-
-			DEBUG_MSG("later", later);
-			laterI = find_point(rA, later);
+		if(tvs.size() == 1) {
+			return tvs.front();
 		}
 
-		if (laterI == std::numeric_limits<psize_t>::max()) {
-			throw std::runtime_error(
-					"Internal error: Can't find later point of last edge");
-		}
-
-		std::vector<segment_t> viableEdges;
-		previous = rA[laterI];
-		for (psize_t i = laterI + 1; i < rA.size() + laterI + 1; ++i) {
-			if (i >= rA.size())
-				next = rA[i % rA.size()];
-			else
-				next = rA[i];
-
-			viableEdges.push_back( { previous, next });
-			previous = next;
-		}
-
-//		auto rng = std::default_random_engine {};
-//		std::shuffle(std::begin(viableEdges), std::end(viableEdges), rng);
-
-		//search with consulting the history to prevent oscillation
-		std::vector<TranslationVector> viableTrans;
-		std::vector<TranslationVector> nonHistViableTrans;
-
-		for (const auto& ve : viableEdges) {
-			for (const auto& tv : tvs) {
-				if ((tv.fromA_ && (normalize(tv.vector_) == normalize(ve.second - ve.first))) && (tv.edge_ != last.edge_ || tv.vector_.x_ != -last.vector_.x_ || tv.vector_.y_ != -last.vector_.y_)) {
-					viableTrans.push_back(tv);
-				}
-			}
-			for (const auto& tv : tvs) {
-				if (!tv.fromA_) {
-					point_t later;
-					if (tv.vector_ == (tv.edge_.second - tv.edge_.first) && (tv.edge_ != last.edge_ || tv.vector_.x_ != -last.vector_.x_ || tv.vector_.y_ != -last.vector_.y_)) {
-						later = tv.edge_.second;
-					} else if (tv.vector_ == (tv.edge_.first - tv.edge_.second)) {
-						later = tv.edge_.first;
-					} else
-						continue;
-
-					if (later == ve.first || later == ve.second) {
-						viableTrans.push_back(tv);
-					}
-				}
-			}
-		}
-
-
+		std::vector<TranslationVector> viableTrans = tvs;
 
 #ifdef NFP_DEBUG
-		DEBUG_VAL("viable translations:")
+		DEBUG_VAL("viable translations:");
 		for (const auto& vtv : viableTrans) {
 			DEBUG_VAL(vtv);
 		}
@@ -1231,9 +1133,10 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 		size_t histAge = 0;
 		size_t maxHistAge = 0;
 		size_t histCnt = 0;
-		size_t minHistCnt = history.size();
+		size_t minHistCnt = history.size() + 1;
 		TranslationVector oldest;
 		TranslationVector least_used;
+		std::vector<TranslationVector> nonHistViableTrans;
 
 		DEBUG_VAL("non history viable translations:");
 		for (const auto& vtv : viableTrans) {
@@ -1250,7 +1153,7 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 				least_used = vtv;
 			}
 
-			if(histAge > maxHistAge) {
+			if(histAge >= maxHistAge) {
 				maxHistAge = histAge;
 				oldest = vtv;
 			}
@@ -1265,7 +1168,7 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 			auto longest = getLongest(viableTrans);
 			off_t cnt = 0;
 			if((cnt = count(history, longest)) < 2) { //did we previously pass the candidate twice? (loop!)
-				DEBUG_MSG("longest", longest);
+				DEBUG_MSG("longest1", longest);
 				return longest;
 			} else {
 				for(size_t i = 0; i < viableTrans.size(); ++i) {
@@ -1279,10 +1182,10 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 
 		if (tvs.size() == 1) {
 			return tvs.front();
-		} else if(least_used.vector_ != INVALID_POINT) {
+		} else if(least_used.vector_ != point_t{0,0}) {
 			DEBUG_MSG("least used", least_used);
 			return least_used;
-		} else if(maxHistAge > 0) {
+		} else {
 			DEBUG_MSG("oldest", oldest);
 			return oldest;
 		}
@@ -1291,7 +1194,9 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 		tv.vector_ = INVALID_POINT;
 		return tv;
 	} else {
-		return getLongest(tvs);
+		auto longest = getLongest(tvs);
+		DEBUG_MSG("longest2", longest);
+		return longest;
 	}
 }
 
@@ -1545,7 +1450,7 @@ nfp_t generateNFP(polygon_t& pA, polygon_t& pB, const bool checkValidity = true)
 	write_svg("start.svg", {pA, pB});
 #endif
 
-	DEBUG_VAL(bg::wkt(pA))
+	DEBUG_VAL(bg::wkt(pA));
 	DEBUG_VAL(bg::wkt(pB));
 
 	//prevent double vertex connections at start because we might come back the same way we go which would end the nfp prematurely
@@ -1559,32 +1464,32 @@ nfp_t generateNFP(polygon_t& pA, polygon_t& pB, const bool checkValidity = true)
 	std::vector<psize_t> xBmaxI = find_maximum_x(pB);
 
 	point_t preTrans;
-	LongDouble leftA = pA.outer()[xAminI.front()].x_;
-	LongDouble rightA = pA.outer()[xAmaxI.front()].x_;
+	coord_t leftA = pA.outer()[xAminI.front()].x_;
+	coord_t rightA = pA.outer()[xAmaxI.front()].x_;
 	if(rightA < 0) {
 		preTrans.x_ = rightA * -1;
 	} else if(leftA < 0) {
 		preTrans.x_ = leftA * -1;
 	}
 
-	LongDouble topA = pA.outer()[yAmaxI.front()].y_;
-	LongDouble bottomA = pA.outer()[yAminI.front()].y_;
+	coord_t topA = pA.outer()[yAmaxI.front()].y_;
+	coord_t bottomA = pA.outer()[yAminI.front()].y_;
 	if(topA < 0) {
 		preTrans.y_ = topA * -1;
 	} else if(bottomA < 0) {
 		preTrans.y_ = bottomA * -1;
 	}
 
-	LongDouble leftB = pB.outer()[xBminI.front()].x_;
-	LongDouble rightB = pB.outer()[xBmaxI.front()].x_;
+	coord_t leftB = pB.outer()[xBminI.front()].x_;
+	coord_t rightB = pB.outer()[xBmaxI.front()].x_;
 	if(rightB < 0) {
 		preTrans.x_ += rightB * -1;
 	} else if(leftB < 0) {
 		preTrans.x_ += leftB * -1;
 	}
 
-	LongDouble topB = pB.outer()[yBmaxI.front()].y_;
-	LongDouble bottomB = pB.outer()[yBminI.front()].y_;
+	coord_t topB = pB.outer()[yBmaxI.front()].y_;
+	coord_t bottomB = pB.outer()[yBminI.front()].y_;
 	if(topB < 0) {
 		preTrans.y_ += topB * -1;
 	} else if(bottomB < 0) {
@@ -1647,7 +1552,7 @@ nfp_t generateNFP(polygon_t& pA, polygon_t& pB, const bool checkValidity = true)
 		SearchStartResult res = searchStartTranslation(pA.outer(), pB.outer(), nfp, false, startTrans);
 		if (res == FOUND) {
 			nfp.push_back( { });
-			DEBUG_VAL("##### interlock start #####")
+			DEBUG_VAL("##### interlock start #####");
 			polygon_t::ring_type rifsB;
 			boost::geometry::transform(pB.outer(), rifsB, trans::translate_transformer<coord_t, 2, 2>(startTrans.x_, startTrans.y_));
 			if (inNfp(rifsB.front(), nfp)) {

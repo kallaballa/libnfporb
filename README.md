@@ -63,7 +63,7 @@ The library has two dependencies: [Boost Geometry](http://www.boost.org/doc/libs
 ## Code Example
 
 ```c++
-//uncomment next line to use infinite precision (slow)
+//uncomment next line to use arbitrary precision (slow)
 //#define LIBNFP_USE_RATIONAL
 #include "../src/libnfp.hpp"
 
