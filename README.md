@@ -4,7 +4,7 @@
 # libnfporb
 Implementation of a robust no-fit polygon generation in a C++ library using an orbiting approach.
 
-__Please note:__ The paper this implementation is based it on has several bad assumptions that required me to "improvise". That means the code doesn't reflect the paper anymore and is running way slower than expected. At the moment I'm working on implementing a new approach based on this paper (using minkowski sums): https://eprints.soton.ac.uk/36850/1/CORMSIS-05-05.pdf
+__Please note:__ The paper this implementation is based it on has several bad assumptions that required me to "improvise". That means the code doesn't reflect the paper anymore and is running way slower than expected.
 
 ## Description
 
@@ -50,7 +50,7 @@ for the irregular stock cutting problem](https://pdfs.semanticscholar.org/e698/0
 
 Note that is wasn't completely possible to implement it as suggested in the paper because it had several shortcomings that prevent complete NFP generation on some of my test cases. Especially the termination criteria (reference point returns to first point of NFP) proved to be wrong (see: test-case rect). Also tracking of used edges can't be performed as suggested in the paper since there might be situations where no edge of A is traversed (see: test-case doublecon).
 
-By default the library is using floating point as coordinate type but by defining the flag "LIBNFP_USE_RATIONAL" the library can be instructed to use infinite precision.
+By default the library is using floating point as coordinate type but by defining the flag "LIBNFP_USE_RATIONAL" the library can be instructed to use arbitrary precision.
 
 ## Build
 The library has two dependencies: [Boost Geometry](http://www.boost.org/doc/libs/1_65_1/libs/geometry/doc/html/index.html) and [libgmp](https://gmplib.org). If you have problems with Boost try version 1.65 (though I am using 1.76 at the moment). You need to install those first before building. 
