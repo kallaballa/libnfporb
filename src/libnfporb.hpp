@@ -444,7 +444,8 @@ template<>
 struct smaller<libnfporb::LongDouble>
 {
 	static inline bool apply(libnfporb::LongDouble const& lhs, libnfporb::LongDouble const& rhs) {
-		if (lhs.val() == rhs.val() || bg::math::detail::abs<libnfporb::LongDouble>::apply(lhs.val() - rhs.val()) <= libnfporb::NFP_EPSILON * std::fmax(lhs.val(), rhs.val()))
+		if (lhs.val() == rhs.val() || bg::math::detail::abs<libnfporb::LongDouble>::apply(lhs.val() - rhs.val()) <= libnfporb::NFP_EPSILON * std::fmax(bg::math::detail::abs<libnfporb::LongDouble>::apply(lhs.val()).val(),
+				bg::math::detail::abs<libnfporb::LongDouble>::apply(rhs.val()).val()))
 			return false;
 
 		return lhs < rhs;
@@ -460,7 +461,9 @@ bool equals(const LongDouble& lhs, const LongDouble& rhs) {
 	if (lhs.val() == rhs.val())
 		return true;
 
-	return bg::math::detail::abs<libnfporb::LongDouble>::apply(lhs.val() - rhs.val()) <= libnfporb::NFP_EPSILON * std::fmax(lhs.val(), rhs.val());
+	return bg::math::detail::abs<libnfporb::LongDouble>::apply(lhs.val() - rhs.val()) <= libnfporb::NFP_EPSILON * std::fmax(
+			bg::math::detail::abs<libnfporb::LongDouble>::apply(lhs.val()).val(),
+			bg::math::detail::abs<libnfporb::LongDouble>::apply(rhs.val()).val());
 }
 
 inline bool smaller(const LongDouble& lhs, const LongDouble& rhs) {
@@ -694,7 +697,7 @@ std::ostream& operator<<(std::ostream& os, const TranslationVector& tv) {
 }
 
 bool operator==(const TranslationVector& lhs, const TranslationVector& rhs) {
-	return equals(lhs.edge_, rhs.edge_) && equals(lhs.vector_, rhs.vector_);
+	return equals(lhs.vector_, rhs.vector_) && equals(lhs.edge_, rhs.edge_);
 }
 
 bool operator!=(const TranslationVector& lhs, const TranslationVector& rhs) {
@@ -1159,7 +1162,7 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 			}
 		}
 		DEBUG_VAL("");
-//
+
 		if(!nonHistViableTrans.empty()) {
 			viableTrans = nonHistViableTrans;
 		}
