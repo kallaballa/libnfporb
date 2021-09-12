@@ -23,7 +23,8 @@
 
 namespace libnfporb {
 
-polygon_t::ring_type deleteConsecutiveRepeatingPoints(polygon_t::ring_type& ring) {
+bool deleteConsecutiveRepeatingPoints(polygon_t::ring_type& ring) {
+  size_t startLen = ring.size();
   off_t len = ring.size();
   int i, j, counter;
   for (i = 1; i <= len / 2; ++i) {
@@ -61,7 +62,7 @@ polygon_t::ring_type deleteConsecutiveRepeatingPoints(polygon_t::ring_type& ring
     }
     l = c;
   }
-  return ring;
+  return ring.size() != startLen;
 }
 
 void removeCoLinear(polygon_t::ring_type& r) {
@@ -276,7 +277,7 @@ nfp_t generateNFP(polygon_t& pA, polygon_t& pB, const bool checkValidity = true)
 
 	for(auto& r : nfp) {
 		bg::correct(r);
-		deleteConsecutiveRepeatingPoints(r);
+		while(deleteConsecutiveRepeatingPoints(r));
 	}
 	return nfp;
 }
