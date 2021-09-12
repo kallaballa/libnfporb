@@ -1,7 +1,5 @@
-//uncomment next line to use infinite precision (slow)
+//uncomment next line to use arbitrary precision (slow)
 //#define LIBNFP_USE_RATIONAL
-
-#define NFP_DEBUG
 
 #include "../src/libnfporb.hpp"
 
