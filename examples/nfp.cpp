@@ -1,6 +1,9 @@
 //uncomment next line to use arbitrary precision (slow)
 //#define LIBNFP_USE_RATIONAL
 
+//uncomment to enable debug mode
+//#define NFP_DEBUG
+
 #include "../src/libnfporb.hpp"
 
 int main(int argc, char** argv) {
