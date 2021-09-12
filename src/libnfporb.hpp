@@ -23,7 +23,40 @@
 
 namespace libnfporb {
 
-bool deleteConsecutiveRepeatingPoints(polygon_t::ring_type& ring) {
+void removeRepeat(polygon_t::ring_type& r, size_t patternLength) {
+	if (!r.empty() && patternLength > 0) {
+		int length = r.size();
+
+		if (length > patternLength) {
+			int tokenbegin = 0;
+			int patterni = 0;
+			int pos = 0;
+			int newstringi = tokenbegin + patternLength;
+			int checki = tokenbegin + patternLength;
+
+			while (checki < length) {
+				if (equals(r[checki + pos], r[patterni + pos])) {
+					pos++;
+
+					if (pos == patternLength) {
+						pos = 0;
+						checki += patternLength;
+					}
+				} else {
+					for (int i = pos; i >= 0; --i)
+						r[newstringi++] = r[checki++];
+					patterni++;
+					pos = 0;
+				}
+
+				if (checki > length)
+					break;
+			}
+		}
+	}
+}
+
+bool deleteConsecutiveRepeatingPointPatterns(polygon_t::ring_type& ring) {
   size_t startLen = ring.size();
   off_t len = ring.size();
   int i, j, counter;
@@ -277,7 +310,10 @@ nfp_t generateNFP(polygon_t& pA, polygon_t& pB, const bool checkValidity = true)
 
 	for(auto& r : nfp) {
 		bg::correct(r);
-		while(deleteConsecutiveRepeatingPoints(r));
+
+		for(size_t i = 1; i <= r.size(); ++i)
+			removeRepeat(r,i);
+		while(deleteConsecutiveRepeatingPointPatterns(r));
 	}
 	return nfp;
 }
