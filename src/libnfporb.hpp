@@ -23,6 +23,47 @@
 
 namespace libnfporb {
 
+polygon_t::ring_type deleteConsecutiveRepeatingPoints(polygon_t::ring_type& ring) {
+  off_t len = ring.size();
+  int i, j, counter;
+  for (i = 1; i <= len / 2; ++i) {
+    for (j = i, counter = 0; j < len; ++j) {
+      if (ring[j] == ring[j - i])
+        counter++;
+      else
+        counter = 0;
+      if (counter > 2 && counter == i) {
+        counter = 0;
+        std::copy(ring.begin() + j, ring.begin() + len, ring.begin() + (j - i));
+        j -= i;
+        len -= i;
+      }
+    }
+    ring.resize(j);
+  }
+
+  size_t start = 0, cnt = 0;
+  point_t c, l = ring[0];
+
+  for (size_t i = 1; i < ring.size(); ++i) {
+    c = ring[i];
+    if(c == l) {
+      if(cnt == 0)
+        start = i - 1;
+
+      ++cnt;
+    } else {
+      if(cnt > 1) {
+        ring.erase(ring.begin() + start + 1, ring.begin() + start + cnt);
+        if(start + cnt >= ring.size())
+          break;
+      }
+    }
+    l = c;
+  }
+  return ring;
+}
+
 void removeCoLinear(polygon_t::ring_type& r) {
 	assert(r.size() > 2);
 	psize_t nextI;
@@ -233,6 +274,10 @@ nfp_t generateNFP(polygon_t& pA, polygon_t& pB, const bool checkValidity = true)
 	write_svg("nfp.svg", pA,pB, nfp);
 #endif
 
+	for(auto& r : nfp) {
+		bg::correct(r);
+		deleteConsecutiveRepeatingPoints(r);
+	}
 	return nfp;
 }
 }
