@@ -23,7 +23,7 @@
 
 namespace libnfporb {
 
-void removeRepeat(polygon_t::ring_type& r, size_t patternLength) {
+void removeRepeat(polygon_t::ring_type& r, int patternLength) {
 	if (!r.empty() && patternLength > 0) {
 		int length = r.size();
 
@@ -196,12 +196,9 @@ nfp_t generateNFP(polygon_t& pA, polygon_t& pB, const bool checkValidity = true)
 
 
 	polygon_t pAtrans;
-	polygon_t pBtrans;
 	trans::translate_transformer<coord_t, 2, 2> transformer(preTrans.x_, preTrans.y_);
 	boost::geometry::transform(pA, pAtrans, transformer);
-	boost::geometry::transform(pB, pBtrans, transformer);
 	pA = std::move(pAtrans);
-	pB = std::move(pBtrans);
 
 	point_t pAstart;
 	point_t pBstart;
@@ -268,6 +265,7 @@ nfp_t generateNFP(polygon_t& pA, polygon_t& pB, const bool checkValidity = true)
 			}
 			DEBUG_VAL("##### interlock end #####");
 		} else if (res == FIT) {
+			DEBUG_VAL("##### perfect fit #####");
 			point_t reference = pB.outer().front();
 			point_t translated;
 			trans::translate_transformer<coord_t, 2, 2> translate(startTrans.x_, startTrans.y_);
@@ -311,9 +309,9 @@ nfp_t generateNFP(polygon_t& pA, polygon_t& pB, const bool checkValidity = true)
 	for(auto& r : nfp) {
 		bg::correct(r);
 
-		for(size_t i = 1; i <= r.size(); ++i)
-			removeRepeat(r,i);
-		while(deleteConsecutiveRepeatingPointPatterns(r));
+//		for(size_t i = 1; i <= r.size(); ++i)
+//			removeRepeat(r,i);
+//		while(deleteConsecutiveRepeatingPointPatterns(r));
 	}
 	return nfp;
 }
