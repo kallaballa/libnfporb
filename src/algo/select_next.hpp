@@ -64,7 +64,6 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 		size_t minHistCnt = history.size() + 1;
 		TranslationVector oldest;
 		TranslationVector least_used;
-		least_used.vector_ = INVALID_POINT;
 
 		DEBUG_VAL("non history viable translations:");
 		for (const auto& vtv : viableTrans) {
@@ -86,20 +85,21 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 		sort_by_length(viableTrans);
 		for(auto& candidate : viableTrans) {
 			if(count(history, candidate) == 0) {
-				DEBUG_MSG("unused", candidate);
+				DEBUG_MSG("longest unused", candidate);
 				return candidate;
 			}
 		}
 
 		if (tvs.size() == 1) {
 			return tvs.front();
-		} else if(!equals(least_used.vector_, INVALID_POINT)) {
+		} else {
 			DEBUG_MSG("least used", least_used);
 			return least_used;
-		} else {
-			DEBUG_MSG("oldest", oldest);
-			return oldest;
 		}
+//		} else {
+//			DEBUG_MSG("oldest", oldest);
+//			return oldest;
+//		}
 
 		TranslationVector tv;
 		tv.vector_ = INVALID_POINT;
