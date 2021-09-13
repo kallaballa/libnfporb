@@ -81,7 +81,7 @@ int main(int argc, char** argv) {
 
   //generate NFP of polygon A and polygon B and check the polygons for validity. 
   //When the third parameters is false validity check is skipped for a little performance increase
-  nfp_t nfp = generateNFP(pA, pB, true);
+  nfp_t nfp = generate_nfp(pA, pB, true);
   
   //write a svg containing pA, pB and NFP
   write_svg("nfp.svg", pA, pB, nfp);
