@@ -56,17 +56,11 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 		TranslationVector oldest;
 		TranslationVector least_used;
 		least_used.vector_ = INVALID_POINT;
-		std::vector<TranslationVector> nonHistViableTrans;
 
 		DEBUG_VAL("non history viable translations:");
 		for (const auto& vtv : viableTrans) {
 			histAge = history.size() - find(history, vtv);
 			histCnt = count(history, vtv);
-
-			if (histAge == 0) {
-				nonHistViableTrans.push_back(vtv);
-				DEBUG_VAL(vtv);
-			}
 
 			if(histCnt < minHistCnt) {
 				minHistCnt = histCnt;
@@ -80,23 +74,10 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 		}
 		DEBUG_VAL("");
 
-		if(!nonHistViableTrans.empty()) {
-			viableTrans = nonHistViableTrans;
-		}
-		auto viableTransCopy = viableTrans;
-	    while (!viableTrans.empty()) {
-			auto longest = getLongest(viableTrans);
-			off_t cnt = 0;
-			if((cnt = count(history, longest)) < 2) { //did we previously pass the candidate twice? (loop!)
-				DEBUG_MSG("longest1", longest);
-				return longest;
-			} else {
-				for(size_t i = 0; i < viableTrans.size(); ++i) {
-					if(viableTrans[i] == longest) {
-						viableTrans.erase(viableTrans.begin() + i);
-						break;
-					}
-				}
+		for(auto& candidate : viableTrans) {
+			if(count(history, candidate) == 0) {
+				DEBUG_MSG("unused", candidate);
+				return candidate;
 			}
 		}
 
