@@ -65,6 +65,10 @@ The library has two dependencies: [Boost Geometry](http://www.boost.org/doc/libs
 ```c++
 //uncomment next line to use arbitrary precision (slow)
 //#define LIBNFP_USE_RATIONAL
+
+//uncomment to enable debug mode
+//#define NFP_DEBUG
+
 #include "../src/libnfp.hpp"
 
 int main(int argc, char** argv) {
