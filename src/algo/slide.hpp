@@ -60,7 +60,7 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 
 		TranslationVector next = selectNextTranslationVector(pA, rA, rB, transVectors, history);
 
-		if (next.vector_ == INVALID_POINT)
+		if (equals(next.vector_, INVALID_POINT))
 			return NO_TRANSLATION;
 
 		TranslationVector trimmed = trimVector(rA, rB, next);
@@ -80,7 +80,7 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 			throw std::runtime_error("Internal Error: Slide resulted in overlap");
 
 		++cnt;
-		if (referenceStart == rB.front() || (inside && bg::touches(rB.front(), nfp.front()))) {
+		if (equals(referenceStart, rB.front()) || (inside && bg::touches(rB.front(), nfp.front()))) {
 			startAvailable = false;
 		}
 	}

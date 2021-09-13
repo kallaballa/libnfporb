@@ -55,6 +55,7 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 		size_t minHistCnt = history.size() + 1;
 		TranslationVector oldest;
 		TranslationVector least_used;
+		least_used.vector_ = INVALID_POINT;
 		std::vector<TranslationVector> nonHistViableTrans;
 
 		DEBUG_VAL("non history viable translations:");
@@ -101,7 +102,7 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 
 		if (tvs.size() == 1) {
 			return tvs.front();
-		} else if(least_used.vector_ != point_t{0,0}) {
+		} else if(!equals(least_used.vector_, INVALID_POINT)) {
 			DEBUG_MSG("least used", least_used);
 			return least_used;
 		} else {

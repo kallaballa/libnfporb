@@ -22,13 +22,13 @@ std::vector<TouchingPoint> findTouchingPoints(const polygon_t::ring_type& ringA,
 		psize_t nextI = i + 1;
 		for (psize_t j = 0; j < ringB.size() - 1; j++) {
 			psize_t nextJ = j + 1;
-			if (ringA[i] == ringB[j]) {
+			if (equals(ringA[i], ringB[j])) {
 				DEBUG_MSG("vertex", segment_t(ringA[i],ringB[j]));
 				touchers.push_back( { TouchingPoint::VERTEX, i, j });
-			} else if (ringA[nextI] != ringB[j] && bg::intersects(segment_t(ringA[i], ringA[nextI]), ringB[j])) {
+			} else if (!equals(ringA[nextI], ringB[j]) && bg::intersects(segment_t(ringA[i], ringA[nextI]), ringB[j])) {
 				DEBUG_MSG("bona", segment_t(ringA[i],ringB[j]));
 				touchers.push_back( { TouchingPoint::B_ON_A, nextI, j });
-			} else if (ringB[nextJ] != ringA[i] && bg::intersects(segment_t(ringB[j], ringB[nextJ]), ringA[i])) {
+			} else if (!equals(ringB[nextJ], ringA[i]) && bg::intersects(segment_t(ringB[j], ringB[nextJ]), ringA[i])) {
 				DEBUG_MSG("aonb", segment_t(ringA[i],ringB[j]));
 				touchers.push_back( { TouchingPoint::A_ON_B, i, nextJ });
 			}

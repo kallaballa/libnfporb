@@ -62,7 +62,7 @@ bool deleteConsecutiveRepeatingPointPatterns(polygon_t::ring_type& ring) {
   int i, j, counter;
   for (i = 1; i <= len / 2; ++i) {
     for (j = i, counter = 0; j < len; ++j) {
-      if (ring[j] == ring[j - i])
+      if (equals(ring[j], ring[j - i]))
         counter++;
       else
         counter = 0;
@@ -81,7 +81,7 @@ bool deleteConsecutiveRepeatingPointPatterns(polygon_t::ring_type& ring) {
 
   for (size_t i = 1; i < ring.size(); ++i) {
     c = ring[i];
-    if(c == l) {
+    if(equals(c, l)) {
       if(cnt == 0)
         start = i - 1;
 
@@ -256,7 +256,7 @@ nfp_t generateNFP(polygon_t& pA, polygon_t& pB, const bool checkValidity = true)
 			SlideResult sres = slide(pA, pA.outer(), pB.outer(), nfp, startTrans, true);
 			if (sres != LOOP) {
 				if (sres == NO_TRANSLATION) {
-					//no initial slide found -> jiggsaw
+					//no initial slide found -> jigsaw
 					if (!inNfp(pB.outer().front(), nfp)) {
 						nfp.push_back( { });
 						nfp.back().push_back(pB.outer().front());

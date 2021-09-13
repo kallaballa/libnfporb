@@ -11,7 +11,7 @@ struct TranslationVector {
 	string name_;
 
 	bool operator<(const TranslationVector& other) const {
-		return this->vector_ < other.vector_ || ((this->vector_ == other.vector_) && (this->edge_ < other.edge_));
+		return this->vector_ < other.vector_ || (equals(this->vector_, other.vector_) && (this->edge_ < other.edge_));
 	}
 };
 

@@ -167,7 +167,7 @@ std::vector<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_ty
 						break;
 					}
 				} else {
-					if (normIn == normalize(v.vector_)) {
+					if (equals(normIn, normalize(v.vector_))) {
 						if (!equals(df, 0) && larger(ds, df)) {
 							DEBUG_MSG("df", df);
 							DEBUG_MSG("ds", ds);

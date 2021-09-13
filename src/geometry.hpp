@@ -313,14 +313,6 @@ public:
 		return result;
 	}
 
-	bool operator==(const point_t& other) const {
-		return bg::equals(this, other);
-	}
-
-	bool operator!=(const point_t& other) const {
-		return !this->operator ==(other);
-	}
-
 	bool operator<(const point_t& other) const {
 		return boost::geometry::math::smaller(this->x_, other.x_) || (equals(this->x_, other.x_) && boost::geometry::math::smaller(this->y_, other.y_));
 	}
@@ -495,7 +487,7 @@ std::ostream& operator<<(std::ostream& os, const segment_t& seg) {
 }
 
 bool operator<(const segment_t& lhs, const segment_t& rhs) {
-	return lhs.first < rhs.first || ((lhs.first == rhs.first) && (lhs.second < rhs.second));
+	return lhs.first < rhs.first || (equals(lhs.first, rhs.first) && (lhs.second < rhs.second));
 }
 
 typedef bg::model::polygon<point_t, false, true> polygon_t;
@@ -618,7 +610,7 @@ std::vector<psize_t> find_maximum_y(const polygon_t& p) {
 
 psize_t find_point(const polygon_t::ring_type& ring, const point_t& pt) {
 	for (psize_t i = 0; i < ring.size(); ++i) {
-		if (ring[i] == pt)
+		if (equals(ring[i], pt))
 			return i;
 	}
 	return std::numeric_limits<psize_t>::max();

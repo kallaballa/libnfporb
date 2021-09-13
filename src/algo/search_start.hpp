@@ -45,7 +45,7 @@ SearchStartResult searchStartTranslation(polygon_t::ring_type& rA, const polygon
 			for (const auto& ptT : translated) {
 				identical = false;
 				for (const auto& ptA : rA) {
-					if (ptT == ptA) {
+					if (equals(ptT, ptA)) {
 						identical = true;
 						break;
 					}
@@ -90,7 +90,7 @@ SearchStartResult searchStartTranslation(polygon_t::ring_type& rA, const polygon
 			for (const auto& ptT : translated) {
 				identical = false;
 				for (const auto& ptA : rA) {
-					if (ptT == ptA) {
+					if (equals(ptT, ptA)) {
 						identical = true;
 						break;
 					}
