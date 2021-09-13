@@ -31,7 +31,7 @@ void sort_by_length(std::vector<TranslationVector>& tvs) {
 }
 
 
-TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon_t::ring_type& rA, const polygon_t::ring_type& rB, const std::vector<TranslationVector>& tvs, const History& history) {
+TranslationVector select_next_translation_vector(const polygon_t& pA, const polygon_t::ring_type& rA, const polygon_t::ring_type& rB, const std::vector<TranslationVector>& tvs, const History& history) {
 	if (history.size() > 1) {
 		TranslationVector last = history.back();
 		DEBUG_MSG("last", last);

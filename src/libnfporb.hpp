@@ -23,42 +23,7 @@
 
 namespace libnfporb {
 
-void removeRepeat(polygon_t::ring_type& r, int patternLength) {
-	DEBUG_MSG("remove_repeat ring", r.size());
-	DEBUG_MSG("remove_repeat pattern", patternLength);
-	if (!r.empty() && patternLength > 0) {
-		int length = r.size();
-
-		if (length > patternLength) {
-			int tokenbegin = 0;
-			int patterni = 0;
-			int pos = 0;
-			int newstringi = tokenbegin + patternLength;
-			int checki = tokenbegin + patternLength;
-
-			while (checki < length) {
-				if (equals(r[checki + pos], r[patterni + pos])) {
-					pos++;
-
-					if (pos == patternLength) {
-						pos = 0;
-						checki += patternLength;
-					}
-				} else {
-					for (int i = pos; i >= 0; --i)
-						r[newstringi++] = r[checki++];
-					patterni++;
-					pos = 0;
-				}
-
-				if (checki > length)
-					break;
-			}
-		}
-	}
-}
-
-bool deleteConsecutiveRepeatingPointPatterns(polygon_t::ring_type& ring) {
+bool delete_consecutive_repeating_point_patterns(polygon_t::ring_type& ring) {
   size_t startLen = ring.size();
   off_t len = ring.size();
   int i, j, counter;
@@ -100,7 +65,7 @@ bool deleteConsecutiveRepeatingPointPatterns(polygon_t::ring_type& ring) {
   return ring.size() != startLen;
 }
 
-void removeCoLinear(polygon_t::ring_type& r) {
+void remove_co_linear(polygon_t::ring_type& r) {
 	assert(r.size() > 2);
 	psize_t nextI;
 	psize_t prevI = 0;
@@ -123,17 +88,17 @@ void removeCoLinear(polygon_t::ring_type& r) {
 	r = newR;
 }
 
-void removeCoLinear(polygon_t& p) {
-	removeCoLinear(p.outer());
+void remove_co_linear(polygon_t& p) {
+	remove_co_linear(p.outer());
 	for (auto& r : p.inners())
-		removeCoLinear(r);
+		remove_co_linear(r);
 
 	bg::correct(p);
 }
 
-nfp_t generateNFP(polygon_t& pA, polygon_t& pB, const bool checkValidity = true) {
-	removeCoLinear(pA);
-	removeCoLinear(pB);
+nfp_t generate_nfp(polygon_t& pA, polygon_t& pB, const bool checkValidity = true) {
+	remove_co_linear(pA);
+	remove_co_linear(pB);
 
 	if (checkValidity) {
 		std::string reason;
@@ -246,20 +211,20 @@ nfp_t generateNFP(polygon_t& pA, polygon_t& pB, const bool checkValidity = true)
 	DEBUG_VAL("##### outer #####");
 	point_t startTrans;
 	while (true) {
-		SearchStartResult res = searchStartTranslation(pA.outer(), pB.outer(), nfp, false, startTrans);
+		SearchStartResult res = search_start_translation(pA.outer(), pB.outer(), nfp, false, startTrans);
 		if (res == FOUND) {
 			nfp.push_back( { });
 			DEBUG_VAL("##### interlock start #####");
 			polygon_t::ring_type rifsB;
 			boost::geometry::transform(pB.outer(), rifsB, trans::translate_transformer<coord_t, 2, 2>(startTrans.x_, startTrans.y_));
-			if (inNfp(rifsB.front(), nfp)) {
+			if (in_nfp(rifsB.front(), nfp)) {
 				continue;
 			}
 			SlideResult sres = slide(pA, pA.outer(), pB.outer(), nfp, startTrans, true);
 			if (sres != LOOP) {
 				if (sres == NO_TRANSLATION) {
 					//no initial slide found -> jigsaw
-					if (!inNfp(pB.outer().front(), nfp)) {
+					if (!in_nfp(pB.outer().front(), nfp)) {
 						nfp.push_back( { });
 						nfp.back().push_back(pB.outer().front());
 					}
@@ -272,7 +237,7 @@ nfp_t generateNFP(polygon_t& pA, polygon_t& pB, const bool checkValidity = true)
 			point_t translated;
 			trans::translate_transformer<coord_t, 2, 2> translate(startTrans.x_, startTrans.y_);
 			boost::geometry::transform(reference, translated, translate);
-			if (!inNfp(translated, nfp)) {
+			if (!in_nfp(translated, nfp)) {
 				nfp.push_back( { });
 				nfp.back().push_back(translated);
 			}
@@ -283,7 +248,7 @@ nfp_t generateNFP(polygon_t& pA, polygon_t& pB, const bool checkValidity = true)
 
 	for (auto& rA : pA.inners()) {
 		while (true) {
-			SearchStartResult res = searchStartTranslation(rA, pB.outer(), nfp, true, startTrans);
+			SearchStartResult res = search_start_translation(rA, pB.outer(), nfp, true, startTrans);
 			if (res == FOUND) {
 				nfp.push_back( { });
 				DEBUG_VAL("##### hole start #####");
@@ -294,7 +259,7 @@ nfp_t generateNFP(polygon_t& pA, polygon_t& pB, const bool checkValidity = true)
 				point_t translated;
 				trans::translate_transformer<coord_t, 2, 2> translate(startTrans.x_, startTrans.y_);
 				boost::geometry::transform(reference, translated, translate);
-				if (!inNfp(translated, nfp)) {
+				if (!in_nfp(translated, nfp)) {
 					nfp.push_back( { });
 					nfp.back().push_back(translated);
 				}
@@ -310,7 +275,7 @@ nfp_t generateNFP(polygon_t& pA, polygon_t& pB, const bool checkValidity = true)
 
 	for(auto& r : nfp) {
 		for(size_t i = 1; i <= std::floor(r.size() / 2); ++i)
-			deleteConsecutiveRepeatingPointPatterns(r);
+			delete_consecutive_repeating_point_patterns(r);
 		bg::correct(r);
 	}
 	return nfp;

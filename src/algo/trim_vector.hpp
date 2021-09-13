@@ -6,7 +6,7 @@
 
 namespace libnfporb {
 //TODO deduplicate code
-TranslationVector trimVector(const polygon_t::ring_type& rA, const polygon_t::ring_type& rB, const TranslationVector& tv) {
+TranslationVector trim_vector(const polygon_t::ring_type& rA, const polygon_t::ring_type& rB, const TranslationVector& tv) {
 	coord_t shortest = bg::length(tv.edge_);
 	TranslationVector trimmed = tv;
 	for (const auto& ptA : rA) {

@@ -16,7 +16,7 @@ struct TouchingPoint {
 	psize_t B_;
 };
 
-std::vector<TouchingPoint> findTouchingPoints(const polygon_t::ring_type& ringA, const polygon_t::ring_type& ringB) {
+std::vector<TouchingPoint> find_touching_points(const polygon_t::ring_type& ringA, const polygon_t::ring_type& ringB) {
 	std::vector<TouchingPoint> touchers;
 	for (psize_t i = 0; i < ringA.size() - 1; i++) {
 		psize_t nextI = i + 1;

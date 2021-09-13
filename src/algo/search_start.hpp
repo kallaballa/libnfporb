@@ -5,7 +5,7 @@
 #include "../translation_vector.hpp"
 
 namespace libnfporb {
-bool inNfp(const point_t& pt, const nfp_t& nfp) {
+bool in_nfp(const point_t& pt, const nfp_t& nfp) {
 	for (const auto& r : nfp) {
 		if (bg::touches(pt, r))
 			return true;
@@ -20,7 +20,7 @@ enum SearchStartResult {
 	NOT_FOUND
 };
 
-SearchStartResult searchStartTranslation(polygon_t::ring_type& rA, const polygon_t::ring_type& rB, const nfp_t& nfp, const bool& inside, point_t& result) {
+SearchStartResult search_start_translation(polygon_t::ring_type& rA, const polygon_t::ring_type& rB, const nfp_t& nfp, const bool& inside, point_t& result) {
 	for (psize_t i = 0; i < rA.size() - 1; i++) {
 		psize_t index;
 		if (i >= rA.size())
@@ -73,7 +73,7 @@ SearchStartResult searchStartTranslation(polygon_t::ring_type& rA, const polygon
 				}
 			}
 
-			if (((bInside && inside) || (!bInside && !inside)) && (!bg::overlaps(translated, rA) && !bg::covered_by(translated, rA) && !bg::covered_by(rA, translated)) && !inNfp(translated.front(), nfp)) {
+			if (((bInside && inside) || (!bInside && !inside)) && (!bg::overlaps(translated, rA) && !bg::covered_by(translated, rA) && !bg::covered_by(rA, translated)) && !in_nfp(translated.front(), nfp)) {
 				result = testTranslation;
 				return FOUND;
 			}
@@ -83,7 +83,7 @@ SearchStartResult searchStartTranslation(polygon_t::ring_type& rA, const polygon
 			slideVector.vector_ = nextPtA - ptA;
 			slideVector.edge_ = {ptA, nextPtA};
 			slideVector.fromA_ = true;
-			TranslationVector trimmed = trimVector(rA, translated, slideVector);
+			TranslationVector trimmed = trim_vector(rA, translated, slideVector);
 			polygon_t::ring_type translated2;
 			trans::translate_transformer<coord_t, 2, 2> trans(trimmed.vector_.x_, trimmed.vector_.y_);
 			boost::geometry::transform(translated, translated2, trans);
@@ -121,7 +121,7 @@ SearchStartResult searchStartTranslation(polygon_t::ring_type& rA, const polygon
 				}
 			}
 
-			if (((bInside && inside) || (!bInside && !inside)) && (!bg::overlaps(translated2, rA) && !bg::covered_by(translated2, rA) && !bg::covered_by(rA, translated2)) && !inNfp(translated2.front(), nfp)) {
+			if (((bInside && inside) || (!bInside && !inside)) && (!bg::overlaps(translated2, rA) && !bg::covered_by(translated2, rA) && !bg::covered_by(rA, translated2)) && !in_nfp(translated2.front(), nfp)) {
 				result = trimmed.vector_ + testTranslation;
 				return FOUND;
 			}

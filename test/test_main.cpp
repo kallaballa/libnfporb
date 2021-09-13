@@ -71,7 +71,7 @@ TEST_CASE( "Compare with golden results", "[golden]" ) {
 	read_wkt_nfp((testdir / "golden.wkt").native(), nfpGolden);
 
         //generate NFP of polygon A and polygon B and check the polygons for validity.
-	nfp_t nfp = generateNFP(pA, pB, true);
+	nfp_t nfp = generate_nfp(pA, pB, true);
         
 
         REQUIRE( nfp == nfpGolden );

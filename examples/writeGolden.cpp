@@ -18,7 +18,7 @@ int main(int argc, char** argv) {
   
   //generate NFP of polygon A and polygon B and check the polygons for validity.
   //When the third parameters is false validity check is skipped for a little performance increase
-  nfp_t nfp = generateNFP(pA, pB, true);
+  nfp_t nfp = generate_nfp(pA, pB, true);
   
   ofstream wktfile(argv[3]);
   for(polygon_t::ring_type ring : nfp) {

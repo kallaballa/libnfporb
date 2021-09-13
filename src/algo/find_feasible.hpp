@@ -7,7 +7,7 @@
 #include "touching_point.hpp"
 
 namespace libnfporb {
-std::vector<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_type& ringA, polygon_t::ring_type& ringB, const std::vector<TouchingPoint>& touchers) {
+std::vector<TranslationVector> find_feasible_translation_vectors(polygon_t::ring_type& ringA, polygon_t::ring_type& ringB, const std::vector<TouchingPoint>& touchers) {
 	//use a set to automatically filter duplicate vectors
 	std::vector<TranslationVector> potentialVectors;
 	std::vector<std::pair<segment_t, segment_t>> touchEdges;
@@ -152,7 +152,7 @@ std::vector<TranslationVector> findFeasibleTranslationVectors(polygon_t::ring_ty
 
 				point_t normIn = normalize(v.edge_.second - v.edge_.first);
 				if (equals(df, ds)) {
-					TranslationVector trimmed = trimVector(ringA, ringB, v);
+					TranslationVector trimmed = trim_vector(ringA, ringB, v);
 					polygon_t::ring_type translated;
 					trans::translate_transformer<coord_t, 2, 2> translate(trimmed.vector_.x_, trimmed.vector_.y_);
 					boost::geometry::transform(ringB, translated, translate);

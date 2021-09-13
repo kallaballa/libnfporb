@@ -31,7 +31,7 @@ polygonf_t convert(polygon_t p) {
 	return pf;
 }
 
-polygon_t nfpRingsToNfpPoly(const nfp_t& nfp) {
+polygon_t nfp_rings_to_nfp_poly(const nfp_t& nfp) {
 	polygon_t nfppoly;
 	for (const auto& pt : nfp.front()) {
 		nfppoly.outer().push_back(pt);

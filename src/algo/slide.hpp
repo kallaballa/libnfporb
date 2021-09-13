@@ -37,14 +37,14 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 		if (cnt == 15)
 			std::cerr << "";
 
-		std::vector<TouchingPoint> touchers = findTouchingPoints(rA, rB);
+		std::vector<TouchingPoint> touchers = find_touching_points(rA, rB);
 
 		DEBUG_MSG("touchers", touchers.size());
 
 		if (touchers.empty()) {
 			throw std::runtime_error("Internal error: No touching points found");
 		}
-		std::vector<TranslationVector> transVectors = findFeasibleTranslationVectors(rA, rB, touchers);
+		std::vector<TranslationVector> transVectors = find_feasible_translation_vectors(rA, rB, touchers);
 
 
 #ifdef NFP_DEBUG
@@ -58,12 +58,12 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 			return NO_LOOP;
 		}
 
-		TranslationVector next = selectNextTranslationVector(pA, rA, rB, transVectors, history);
+		TranslationVector next = select_next_translation_vector(pA, rA, rB, transVectors, history);
 
 		if (equals(next.vector_, INVALID_POINT))
 			return NO_TRANSLATION;
 
-		TranslationVector trimmed = trimVector(rA, rB, next);
+		TranslationVector trimmed = trim_vector(rA, rB, next);
 		DEBUG_MSG("trimmed", trimmed);
 
 		DEBUG_MSG("next", next);
