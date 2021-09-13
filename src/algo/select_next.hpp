@@ -90,16 +90,8 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 			}
 		}
 
-		if (tvs.size() == 1) {
-			return tvs.front();
-		} else {
-			DEBUG_MSG("least used", least_used);
-			return least_used;
-		}
-//		} else {
-//			DEBUG_MSG("oldest", oldest);
-//			return oldest;
-//		}
+		DEBUG_MSG("least used", least_used);
+		return least_used;
 
 		TranslationVector tv;
 		tv.vector_ = INVALID_POINT;

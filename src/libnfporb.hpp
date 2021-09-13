@@ -24,6 +24,8 @@
 namespace libnfporb {
 
 void removeRepeat(polygon_t::ring_type& r, int patternLength) {
+	DEBUG_MSG("remove_repeat ring", r.size());
+	DEBUG_MSG("remove_repeat pattern", patternLength);
 	if (!r.empty() && patternLength > 0) {
 		int length = r.size();
 
@@ -307,11 +309,9 @@ nfp_t generateNFP(polygon_t& pA, polygon_t& pB, const bool checkValidity = true)
 #endif
 
 	for(auto& r : nfp) {
+		for(size_t i = 1; i <= std::floor(r.size() / 2); ++i)
+			deleteConsecutiveRepeatingPointPatterns(r);
 		bg::correct(r);
-
-//		for(size_t i = 1; i <= r.size(); ++i)
-//			removeRepeat(r,i);
-//		while(deleteConsecutiveRepeatingPointPatterns(r));
 	}
 	return nfp;
 }
