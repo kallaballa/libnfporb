@@ -6,7 +6,7 @@
 #include "../history.hpp"
 
 namespace libnfporb {
-TranslationVector getLongest(const std::vector<TranslationVector>& tvs) {
+TranslationVector get_longest(const std::vector<TranslationVector>& tvs) {
 	coord_t len;
 	coord_t maxLen = MIN_COORD;
 	TranslationVector longest;
@@ -21,6 +21,15 @@ TranslationVector getLongest(const std::vector<TranslationVector>& tvs) {
 	}
 	return longest;
 }
+
+void sort_by_length(std::vector<TranslationVector>& tvs) {
+	std::sort( tvs.begin( ), tvs.end( ), [ ]( const TranslationVector& lhs, const TranslationVector& rhs ) {
+		coord_t llen = bg::length(segment_t { { 0, 0 }, lhs.vector_ });
+		coord_t rlen = bg::length(segment_t { { 0, 0 }, rhs.vector_ });
+	   return llen < rlen;
+	});
+}
+
 
 TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon_t::ring_type& rA, const polygon_t::ring_type& rB, const std::vector<TranslationVector>& tvs, const History& history) {
 	if (history.size() > 1) {
@@ -74,6 +83,7 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 		}
 		DEBUG_VAL("");
 
+		sort_by_length(viableTrans);
 		for(auto& candidate : viableTrans) {
 			if(count(history, candidate) == 0) {
 				DEBUG_MSG("unused", candidate);
@@ -95,8 +105,8 @@ TranslationVector selectNextTranslationVector(const polygon_t& pA, const polygon
 		tv.vector_ = INVALID_POINT;
 		return tv;
 	} else {
-		auto longest = getLongest(tvs);
-		DEBUG_MSG("longest2", longest);
+		auto longest = get_longest(tvs);
+		DEBUG_MSG("longest", longest);
 		return longest;
 	}
 }
