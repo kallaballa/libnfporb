@@ -41,19 +41,6 @@ SearchStartResult searchStartTranslation(polygon_t::ring_type& rA, const polygon
 			boost::geometry::transform(rB, translated, trans::translate_transformer<coord_t, 2, 2>(testTranslation.x_, testTranslation.y_));
 
 			//check if the translated rB is identical to rA
-//			bool identical = false;
-//			for (const auto& ptT : translated) {
-//				identical = false;
-//				for (const auto& ptA : rA) {
-//					if (equals(ptT, ptA)) {
-//						identical = true;
-//						break;
-//					}
-//				}
-//				if (!identical)
-//					break;
-//			}
-
 			bool identical = false;
 			for (const auto& ptA : rA) {
 				identical = false;
