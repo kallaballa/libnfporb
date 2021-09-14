@@ -20,6 +20,8 @@ int main(int argc, char** argv) {
   //When the third parameters is false validity check is skipped for a little performance increase
   nfp_t nfp = generate_nfp(pA, pB, true);
   
+  write_svg("nfp.svg",pA,pB,nfp);
+
   ofstream wktfile(argv[3]);
   for(polygon_t::ring_type ring : nfp) {
     wktfile << std::setprecision(12) << bg::wkt(ring) << endl;

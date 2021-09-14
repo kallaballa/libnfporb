@@ -7,7 +7,7 @@ fi
 
 ls -d data/handcrafted/* | while read line; do
   echo -n "#### Running case $line: "
-  examples/nfp $line/A.wkt $line/B.wkt &>> test.log
+  examples/writeGolden $line/A.wkt $line/B.wkt $line/golden.wkt &>> test.log
   if [ $? -eq 0 ]; then
     echo Success
     mv nfp.svg `basename $line`-nfp.svg  
@@ -16,3 +16,6 @@ ls -d data/handcrafted/* | while read line; do
     exit 1
   fi
 done
+
+echo "Golden file changes:"
+git status --porcelain data/handcrafted/*/golden.wkt  --untracked-files=no | cut -d" " -f3
