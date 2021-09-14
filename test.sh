@@ -18,4 +18,4 @@ ls -d data/handcrafted/* | while read line; do
 done
 
 echo "Golden file changes:"
-git status --porcelain data/handcrafted/*/golden.wkt  --untracked-files=no | cut -d" " -f3
+git status --porcelain data/handcrafted/*/golden.wkt  --untracked-files=no

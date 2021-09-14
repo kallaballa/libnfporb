@@ -229,8 +229,7 @@ nfp_t generate_nfp(polygon_t& pA, polygon_t& pB, const bool checkValidity = true
 #endif
 
 	for(auto& r : nfp) {
-		for(size_t i = 1; i <= std::floor(r.size() / 2); ++i)
-			delete_consecutive_repeating_point_patterns(r);
+		while(delete_consecutive_repeating_point_patterns(r));
 		bg::correct(r);
 	}
 	return nfp;

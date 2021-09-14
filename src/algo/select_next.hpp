@@ -30,18 +30,15 @@ void sort_by_length(std::vector<TranslationVector>& tvs) {
 	});
 }
 
-
 TranslationVector select_next_translation_vector(const polygon_t& pA, const polygon_t::ring_type& rA, const polygon_t::ring_type& rB, const std::vector<TranslationVector>& tvs, const History& history) {
+	if(tvs.size() == 1) {
+		return tvs.front();
+	}
+
 	if (history.size() > 1) {
+		std::vector<TranslationVector> viableTrans = tvs;
 		TranslationVector last = history.back();
 		DEBUG_MSG("last", last);
-
-		if(tvs.size() == 1) {
-			return tvs.front();
-		}
-
-		std::vector<TranslationVector> viableTrans = tvs;
-
 #ifdef NFP_DEBUG
 		DEBUG_VAL("viable translations:");
 		for (const auto& vtv : viableTrans) {
@@ -58,35 +55,25 @@ TranslationVector select_next_translation_vector(const polygon_t& pA, const poly
 		}
 #endif
 
-		size_t histAge = 0;
-		size_t maxHistAge = 0;
 		size_t histCnt = 0;
 		size_t minHistCnt = history.size() + 1;
-		TranslationVector oldest;
 		TranslationVector least_used;
 
-		DEBUG_VAL("non history viable translations:");
+		sort_by_length(viableTrans);
+
+		for(auto& candidate : viableTrans) {
+			if(count(history, candidate) == 0) {
+				DEBUG_MSG("longest unused", candidate);
+				return candidate;
+			}
+		}
+
 		for (const auto& vtv : viableTrans) {
-			histAge = history.size() - find(history, vtv);
 			histCnt = count(history, vtv);
 
 			if(histCnt < minHistCnt) {
 				minHistCnt = histCnt;
 				least_used = vtv;
-			}
-
-			if(histAge >= maxHistAge) {
-				maxHistAge = histAge;
-				oldest = vtv;
-			}
-		}
-		DEBUG_VAL("");
-
-		sort_by_length(viableTrans);
-		for(auto& candidate : viableTrans) {
-			if(count(history, candidate) == 0) {
-				DEBUG_MSG("longest unused", candidate);
-				return candidate;
 			}
 		}
 
