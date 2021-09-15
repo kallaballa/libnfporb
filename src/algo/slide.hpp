@@ -6,15 +6,32 @@
 
 namespace libnfporb {
 
+/**
+ * Indicates the result of the slide function
+ */
 enum SlideResult {
-	LOOP,
-	NO_LOOP,
-	NO_TRANSLATION
+	LOOP,         //!< we were able to successfully create a NFP-loop
+	NO_LOOP,      //!< we were not because we ran out of feasible translations
+	NO_TRANSLATION//!< we were unable to find a valid next position
 };
 
-SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type& rB, nfp_t& nfp, const point_t& transB, bool inside) {
+/**
+ * The function actually performs the orbiting by sliding one ring around the other.
+ * @param pA Polygon A
+ * @param rA Ring of A
+ * @param rB Ring of B
+ * @param nfp The NFP reference to write the traversal to.
+ * @param startTrans The initial translation to perform on rB.
+ * @param inside We are sliding on the inside, which means we previously determined that we are in a hole.
+ * @throws runtime_error on internal errors
+ * @return A SlideResult, which indicates:
+ * we were able to successfully create a NFP-loop (LOOP) or,
+ * we were not because we ran out of feasible translations (NO_LOOP) or
+ * we were unable to find a valid next position (NO_TRANSLATION)
+ */
+SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type& rB, nfp_t& nfp, const point_t& startTrans, bool inside) {
 	polygon_t::ring_type rifsB;
-	boost::geometry::transform(rB, rifsB, trans::translate_transformer<coord_t, 2, 2>(transB.x_, transB.y_));
+	boost::geometry::transform(rB, rifsB, trans::translate_transformer<coord_t, 2, 2>(startTrans.x_, startTrans.y_));
 	rB = std::move(rifsB);
 
 #ifdef NFP_DEBUG
@@ -44,21 +61,21 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 		if (touchers.empty()) {
 			throw std::runtime_error("Internal error: No touching points found");
 		}
-		std::vector<TranslationVector> transVectors = find_feasible_translation_vectors(rA, rB, touchers);
+		std::vector<TranslationVector> feasibleVectors = find_feasible_translation_vectors(rA, rB, touchers);
 
 
 #ifdef NFP_DEBUG
-		DEBUG_MSG("collected vectors", transVectors.size());
-		for(auto pt : transVectors) {
+		DEBUG_MSG("feasible vectors", feasibleVectors.size());
+		for(auto pt : feasibleVectors) {
 			DEBUG_VAL(pt);
 		}
 #endif
 
-		if (transVectors.empty()) {
+		if (feasibleVectors.empty()) {
 			return NO_LOOP;
 		}
 
-		TranslationVector next = select_next_translation_vector(pA, rA, rB, transVectors, history);
+		TranslationVector next = select_next_translation_vector(pA, rA, rB, feasibleVectors, history);
 
 		if (equals(next.vector_, INVALID_POINT))
 			return NO_TRANSLATION;
@@ -77,7 +94,7 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 		write_svg("next" + std::to_string(cnt) + ".svg", pA,rB);
 #endif
 		if(bg::overlaps(pA, rB))
-			throw std::runtime_error("Internal Error: Slide resulted in overlap");
+			throw std::runtime_error("Internal error: Slide resulted in overlap");
 
 		++cnt;
 		if (equals(referenceStart, rB.front()) || (inside && bg::touches(rB.front(), nfp.front()))) {

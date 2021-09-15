@@ -4,6 +4,11 @@
 #include "geometry.hpp"
 
 namespace libnfporb {
+/**
+ * @brief Read a wkt polygon from a file.
+ * @param filename The name of the file to read from.
+ * @param p The polygon reference to store the resulting polygon in.
+ */
 void read_wkt_polygon(const string& filename, polygon_t& p) {
 	std::ifstream t(filename);
 

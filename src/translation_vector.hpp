@@ -4,6 +4,9 @@
 #include "geometry.hpp"
 
 namespace libnfporb {
+/**
+ * TranslationVector is the struct used to store information about translations (including the segment it was derived from)
+ */
 struct TranslationVector {
 	point_t vector_;
 	segment_t edge_;

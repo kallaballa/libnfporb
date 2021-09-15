@@ -6,6 +6,13 @@
 
 namespace libnfporb {
 //TODO deduplicate code
+/**
+ * @brief Trim a given translation vector so that it doesn't intersect with either rA or rB.
+ * @param rA Ring of A.
+ * @param rB Ring of B.
+ * @param tv The given translation vector
+ * @return The trimmed translation vector
+ */
 TranslationVector trim_vector(const polygon_t::ring_type& rA, const polygon_t::ring_type& rB, const TranslationVector& tv) {
 	coord_t shortest = bg::length(tv.edge_);
 	TranslationVector trimmed = tv;

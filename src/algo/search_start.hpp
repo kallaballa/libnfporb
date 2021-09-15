@@ -5,6 +5,13 @@
 #include "../translation_vector.hpp"
 
 namespace libnfporb {
+
+/**
+ * @brief Checks if a point exists in a NFP
+ * @param pt The point to look for
+ * @param nfp The NFP to search
+ * @return true if the point was found
+ */
 bool in_nfp(const point_t& pt, const nfp_t& nfp) {
 	for (const auto& r : nfp) {
 		if (bg::touches(pt, r))
@@ -14,12 +21,24 @@ bool in_nfp(const point_t& pt, const nfp_t& nfp) {
 	return false;
 }
 
+/**
+ * @brief Indicating the result of %search_start_translation
+ */
 enum SearchStartResult {
-	FIT,
-	FOUND,
-	NOT_FOUND
+	FIT,     //!< FIT
+	FOUND,   //!< FOUND
+	NOT_FOUND//!< NOT_FOUND
 };
 
+/**
+ * @brief At the start of traversal and after every completed nfp-ring this function is used to search for a new start position.
+ * @param rA The ring of polygon A to search for a new start position.
+ * @param rB The ring of polygon B to try to fit into a new start position.
+ * @param nfp The NFP so far.
+ * @param result The reference, the translation vector that would lead to a new start position, is written to.
+ *
+ * @return A %SearchStartResult that indicates if either a perfect fit, a new start position or new possible position was found
+ */
 SearchStartResult search_start_translation(polygon_t::ring_type& rA, const polygon_t::ring_type& rB, const nfp_t& nfp, const bool& inside, point_t& result) {
 	for (psize_t i = 0; i < rA.size() - 1; i++) {
 		psize_t index;
@@ -40,7 +59,7 @@ SearchStartResult search_start_translation(polygon_t::ring_type& rA, const polyg
 			polygon_t::ring_type translated;
 			boost::geometry::transform(rB, translated, trans::translate_transformer<coord_t, 2, 2>(testTranslation.x_, testTranslation.y_));
 
-			//check if the translated rB is identical to rA
+			//check if translated rB is part of rA
 			bool identical = false;
 			for (const auto& ptA : rA) {
 				identical = false;
@@ -88,7 +107,7 @@ SearchStartResult search_start_translation(polygon_t::ring_type& rA, const polyg
 			trans::translate_transformer<coord_t, 2, 2> trans(trimmed.vector_.x_, trimmed.vector_.y_);
 			boost::geometry::transform(translated, translated2, trans);
 
-			//check if the translated rB is identical to rA
+			//check if translated rB is part of rA
 			identical = false;
 			for (const auto& ptA : rA) {
 				identical = false;

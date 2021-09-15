@@ -6,7 +6,12 @@
 #include "../history.hpp"
 
 namespace libnfporb {
-TranslationVector get_longest(const std::vector<TranslationVector>& tvs) {
+/**
+ * @brief Find the longest translation vector
+ * @param tvs The translation vectors
+ * @return The longest translation vector
+ */
+TranslationVector find_longest(const std::vector<TranslationVector>& tvs) {
 	coord_t len;
 	coord_t maxLen = MIN_COORD;
 	TranslationVector longest;
@@ -22,6 +27,10 @@ TranslationVector get_longest(const std::vector<TranslationVector>& tvs) {
 	return longest;
 }
 
+/**
+ * @brief Sort a std::vector of translation vectors by length
+ * @param tvs The std::vector to sort
+ */
 void sort_by_length(std::vector<TranslationVector>& tvs) {
 	std::sort( tvs.begin( ), tvs.end( ), [ ]( const TranslationVector& lhs, const TranslationVector& rhs ) {
 		coord_t llen = bg::length(segment_t { { 0, 0 }, lhs.vector_ });
@@ -30,22 +39,22 @@ void sort_by_length(std::vector<TranslationVector>& tvs) {
 	});
 }
 
-TranslationVector select_next_translation_vector(const polygon_t& pA, const polygon_t::ring_type& rA, const polygon_t::ring_type& rB, const std::vector<TranslationVector>& tvs, const History& history) {
-	if(tvs.size() == 1) {
-		return tvs.front();
+/**
+ * @brief Select the next translation vector from all viable translations
+ * @param pA Polygon A
+ * @param rA The pertaining ring of polygon A
+ * @param rB Ring of B
+ * @param viableTrans All viable translations (= all translations that lead to a valid slide, including already traversed ones)
+ * @param history The history of all performed translations
+ * @return The translation vector used for the next traversal step (slide)
+ */
+TranslationVector select_next_translation_vector(const polygon_t& pA, const polygon_t::ring_type& rA, const polygon_t::ring_type& rB, std::vector<TranslationVector> feasibleVectors, const History& history) {
+	if(feasibleVectors.size() == 1) {
+		return feasibleVectors.front();
 	}
 
 	if (history.size() > 1) {
-		std::vector<TranslationVector> viableTrans = tvs;
-		TranslationVector last = history.back();
-		DEBUG_MSG("last", last);
 #ifdef NFP_DEBUG
-		DEBUG_VAL("viable translations:");
-		for (const auto& vtv : viableTrans) {
-			DEBUG_VAL(vtv);
-		}
-		DEBUG_VAL("");
-
 		if(history.size() > 5) {
 			DEBUG_VAL("last 6 from history:");
 			for (size_t i = 0; i < 6; ++i) {
@@ -59,21 +68,21 @@ TranslationVector select_next_translation_vector(const polygon_t& pA, const poly
 		size_t minHistCnt = history.size() + 1;
 		TranslationVector least_used;
 
-		sort_by_length(viableTrans);
+		sort_by_length(feasibleVectors);
 
-		for(auto& candidate : viableTrans) {
+		for(auto& candidate : feasibleVectors) {
 			if(count(history, candidate) == 0) {
 				DEBUG_MSG("longest unused", candidate);
 				return candidate;
 			}
 		}
 
-		for (const auto& vtv : viableTrans) {
-			histCnt = count(history, vtv);
+		for (const auto& candidate : feasibleVectors) {
+			histCnt = count(history, candidate);
 
 			if(histCnt < minHistCnt) {
 				minHistCnt = histCnt;
-				least_used = vtv;
+				least_used = candidate;
 			}
 		}
 
@@ -84,7 +93,7 @@ TranslationVector select_next_translation_vector(const polygon_t& pA, const poly
 		tv.vector_ = INVALID_POINT;
 		return tv;
 	} else {
-		auto longest = get_longest(tvs);
+		auto longest = find_longest(feasibleVectors);
 		DEBUG_MSG("longest", longest);
 		return longest;
 	}

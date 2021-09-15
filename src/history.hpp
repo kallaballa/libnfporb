@@ -7,6 +7,13 @@
 namespace libnfporb {
 typedef std::vector<TranslationVector> History;
 
+/**
+ * Find a translation vector in the history.
+ * @param h The history.
+ * @param tv The translation vector.
+ * @param offset The index offset to start searching from
+ * @return returns The index of the translation vector or -1 if it isn't found.
+ */
 off_t find(const History& h, const TranslationVector& tv, const off_t& offset = 0) {
 	if(offset < 0)
 		return -1;
@@ -20,7 +27,12 @@ off_t find(const History& h, const TranslationVector& tv, const off_t& offset = 
 	return -1;
 }
 
-size_t count(const History& h, const TranslationVector& tv) {
+/**
+ * Count the occurences of a translation vector in the history.
+ * @param h The history.
+ * @param tv The translation vector.
+ * @return The count of occurrences in the history.
+ */size_t count(const History& h, const TranslationVector& tv) {
 	size_t cnt = 0;
 	off_t offset = 0;
 	while((offset = find(h,tv, offset + 1)) != -1)

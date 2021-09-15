@@ -12,6 +12,11 @@
 #include "geometry.hpp"
 
 namespace libnfporb {
+/**
+ * @brief Because the boost svg mapper can't handle our custom types we have to convert polygon_t::ring_type to polygonf_t::ring_type (which is using "long double" as coordinate type).
+ * @param r The ring to convert.
+ * @return A converted copy of r.
+ */
 polygonf_t::ring_type convert(const polygon_t::ring_type& r) {
 	polygonf_t::ring_type rf;
 	for (const auto& pt : r) {
@@ -20,6 +25,11 @@ polygonf_t::ring_type convert(const polygon_t::ring_type& r) {
 	return rf;
 }
 
+/**
+ * @brief Because the boost svg mapper can't handle our custom types we have to convert polygon_t to polygonf_t (which is using "long double" as coordinate type).
+ * @param r The polygon to convert.
+ *  * @return A converted copy of r.
+ */
 polygonf_t convert(polygon_t p) {
 	polygonf_t pf;
 	pf.outer() = convert(p.outer());
@@ -31,22 +41,11 @@ polygonf_t convert(polygon_t p) {
 	return pf;
 }
 
-polygon_t nfp_rings_to_nfp_poly(const nfp_t& nfp) {
-	polygon_t nfppoly;
-	for (const auto& pt : nfp.front()) {
-		nfppoly.outer().push_back(pt);
-	}
-
-	for (size_t i = 1; i < nfp.size(); ++i) {
-		nfppoly.inners().push_back( { });
-		for (const auto& pt : nfp[i]) {
-			nfppoly.inners().back().push_back(pt);
-		}
-	}
-
-	return nfppoly;
-}
-
+/**
+ * @brief Writes segments to a svg file.
+ * @param filename The filename to write to.
+ * @param segments The segments
+ */
 void write_svg(std::string const& filename, const std::vector<segment_t>& segments) {
 	std::ofstream svg(filename.c_str());
 
@@ -58,6 +57,12 @@ void write_svg(std::string const& filename, const std::vector<segment_t>& segmen
 	}
 }
 
+/**
+ * @brief Writes a polygon (A) and a ring (B) to a svg file.
+ * @param filename The filename to write to.
+ * @param p The polygon
+ * @param ring The ring
+ */
 void write_svg(std::string const& filename, const polygon_t& p, const polygon_t::ring_type& ring) {
 	std::ofstream svg(filename.c_str());
 
@@ -71,6 +76,11 @@ void write_svg(std::string const& filename, const polygon_t& p, const polygon_t:
 	mapper.map(rf, "fill-opacity:0.5;fill:rgb(204,153,0);stroke:rgb(153,204,0);stroke-width:0");
 }
 
+/**
+ * @brief Writes polygons a svg file.
+ * @param filename The filename to write to.
+ * @param polygons The polygons
+ */
 void write_svg(std::string const& filename, typename std::vector<polygon_t> const& polygons) {
 	std::ofstream svg(filename.c_str());
 
@@ -82,6 +92,13 @@ void write_svg(std::string const& filename, typename std::vector<polygon_t> cons
 	}
 }
 
+/**
+ * @brief Writes pA, pB and the resulting NFP to a svg file.
+ * @param filename The filename to write to.
+ * @param pA polygon A
+ * @param pB polygon B
+ * @param nfp The resulting NFP
+ */
 void write_svg(std::string const& filename, const polygon_t& pA, const polygon_t & pB, const nfp_t& nfp) {
 	polygon_t nfppoly;
 	for (const auto& pt : nfp.front()) {
