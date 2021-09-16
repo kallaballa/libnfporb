@@ -556,6 +556,13 @@ Variables</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>Delete loops and oscillations from the given ring. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">ring</td><td>A reference to the ring to be shortened. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>true if the ring has changed. </dd></dl>
 
 </div>
 </div>
@@ -925,6 +932,18 @@ Variables</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>Generate the NFP for the given polygons pA and pB. Optionally check the input polygons for validity. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">pA</td><td>polygon A (the stationary polygon). </td></tr>
+    <tr><td class="paramname">pB</td><td>polygon B (the orbiting polygon).<ul>
+<li></li>
+</ul>
+</td></tr>
+    <tr><td class="paramname">checkValidity</td><td>Check the input polygons for validity if true. Defaults to true. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The generated NFP. </dd></dl>
 
 </div>
 </div>
@@ -1358,6 +1377,12 @@ Variables</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>Remove co-linear points from a polygon. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">p</td><td>A reference to a polygon. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
@@ -1376,6 +1401,12 @@ Variables</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>Remove co-linear points from a ring. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">r</td><td>A reference to a ring. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>

@@ -23,6 +23,11 @@
 
 namespace libnfporb {
 
+/**
+ * Delete loops and oscillations from the given ring.
+ * @param ring A reference to the ring to be shortened.
+ * @return true if the ring has changed.
+ */
 bool delete_consecutive_repeating_point_patterns(polygon_t::ring_type& ring) {
   size_t startLen = ring.size();
   off_t len = ring.size();
@@ -65,6 +70,10 @@ bool delete_consecutive_repeating_point_patterns(polygon_t::ring_type& ring) {
   return ring.size() != startLen;
 }
 
+/**
+ * Remove co-linear points from a ring.
+ * @param r A reference to a ring.
+ */
 void remove_co_linear(polygon_t::ring_type& r) {
 	assert(r.size() > 2);
 	psize_t nextI;
@@ -87,7 +96,10 @@ void remove_co_linear(polygon_t::ring_type& r) {
 
 	r = newR;
 }
-
+/**
+ * Remove co-linear points from a polygon.
+ * @param p A reference to a polygon.
+ */
 void remove_co_linear(polygon_t& p) {
 	remove_co_linear(p.outer());
 	for (auto& r : p.inners())
@@ -96,6 +108,13 @@ void remove_co_linear(polygon_t& p) {
 	bg::correct(p);
 }
 
+/**
+ * Generate the NFP for the given polygons pA and pB. Optionally check the input polygons for validity.
+ * @param pA polygon A (the stationary polygon).
+ * @param pB polygon B (the orbiting polygon).
+ *  * @param checkValidity Check the input polygons for validity if true. Defaults to true.
+ * @return The generated NFP.
+ */
 nfp_t generate_nfp(polygon_t& pA, polygon_t& pB, const bool checkValidity = true) {
 	remove_co_linear(pA);
 	remove_co_linear(pB);
