@@ -24,7 +24,7 @@
 namespace libnfporb {
 
 /**
- * Delete loops and oscillations from the given ring.
+ * Delete oscillations and loops from the given ring.
  * @param ring A reference to the ring to be shortened.
  * @return true if the ring has changed.
  */
