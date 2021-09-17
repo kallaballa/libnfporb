@@ -513,6 +513,15 @@ point_t normalize(const point_t& vec) {
 	return norm;
 }
 
+point_t flip(const point_t& vec) {
+	point_t flipped = vec;
+
+	flipped.x_ *= -1;
+	flipped.y_ *= -1;
+
+	return flipped;
+}
+
 enum Alignment {
 	LEFT,
 	RIGHT,

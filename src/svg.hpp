@@ -27,10 +27,10 @@ polygonf_t::ring_type convert(const polygon_t::ring_type& r) {
 
 /**
  * @brief Because the boost svg mapper can't handle our custom types we have to convert polygon_t to polygonf_t (which is using "long double" as coordinate type).
- * @param r The polygon to convert.
- *  * @return A converted copy of r.
+ * @param p The polygon to convert.
+ *  * @return A converted copy of p.
  */
-polygonf_t convert(polygon_t p) {
+polygonf_t convert(const polygon_t& p) {
 	polygonf_t pf;
 	pf.outer() = convert(p.outer());
 

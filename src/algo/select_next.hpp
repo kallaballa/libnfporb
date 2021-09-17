@@ -44,7 +44,7 @@ void sort_by_length(std::vector<TranslationVector>& tvs) {
  * @param pA Polygon A
  * @param rA The pertaining ring of polygon A
  * @param rB Ring of B
- * @param viableTrans All viable translations (= all translations that lead to a valid slide, including already traversed ones)
+ * @param feasibleVectors All viable translations (= all translations that lead to a valid slide, including already traversed ones)
  * @param history The history of all performed translations
  * @return The translation vector used for the next traversal step (slide)
  */

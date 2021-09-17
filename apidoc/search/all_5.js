@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['find_27',['find',['../namespacelibnfporb.html#a3e4cb3f987ea6883a9637bc83e3f37b8',1,'libnfporb']]],
+  ['find_27',['find',['../namespacelibnfporb.html#a300972891b22819ced1512456e8290d1',1,'libnfporb::find(const History &amp;h, const TranslationVector &amp;tv, std::function&lt; bool(const TranslationVector &amp;, const TranslationVector &amp;)&gt; predicate, const off_t &amp;offset=0)'],['../namespacelibnfporb.html#a3e4cb3f987ea6883a9637bc83e3f37b8',1,'libnfporb::find(const History &amp;h, const TranslationVector &amp;tv, const off_t &amp;offset=0)']]],
   ['find_5ffeasible_2ehpp_28',['find_feasible.hpp',['../find__feasible_8hpp.html',1,'']]],
   ['find_5ffeasible_5ftranslation_5fvectors_29',['find_feasible_translation_vectors',['../namespacelibnfporb.html#adadba4ed8bed6e50b03cca5112dc4c6a',1,'libnfporb']]],
   ['find_5flongest_30',['find_longest',['../namespacelibnfporb.html#ae48269c8b06270252a020caa8f362414',1,'libnfporb']]],
@@ -11,6 +11,7 @@ var searchData=
   ['find_5fpoint_35',['find_point',['../namespacelibnfporb.html#a4098c241d73cbe171cec169ae3dbf3d1',1,'libnfporb']]],
   ['find_5ftouching_5fpoints_36',['find_touching_points',['../namespacelibnfporb.html#adef64d071f04a643db9eb39c7b12acb1',1,'libnfporb']]],
   ['fit_37',['FIT',['../namespacelibnfporb.html#ac919112e762b094cbcfda85b004cc608a48c794db749d9af78d4677534cc80165',1,'libnfporb']]],
-  ['found_38',['FOUND',['../namespacelibnfporb.html#ac919112e762b094cbcfda85b004cc608a842d31eb7e3e83ccf42fe970a1f26f90',1,'libnfporb']]],
-  ['froma_5f_39',['fromA_',['../structlibnfporb_1_1TranslationVector.html#a3d1083ca69cec06ef4e5a71b9d81686e',1,'libnfporb::TranslationVector']]]
+  ['flip_38',['flip',['../namespacelibnfporb.html#a017d7db675acdb0a12e7af32967c62e9',1,'libnfporb']]],
+  ['found_39',['FOUND',['../namespacelibnfporb.html#ac919112e762b094cbcfda85b004cc608a842d31eb7e3e83ccf42fe970a1f26f90',1,'libnfporb']]],
+  ['froma_5f_40',['fromA_',['../structlibnfporb_1_1TranslationVector.html#a3d1083ca69cec06ef4e5a71b9d81686e',1,'libnfporb::TranslationVector']]]
 ];
