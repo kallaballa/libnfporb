@@ -48,6 +48,19 @@ off_t find(const History& h, const TranslationVector& tv, const off_t& offset = 
 	return -1;
 }
 
+/**
+ * Count the occurences of a translation vector in the history with a custom predicate.
+ * @param h The history.
+ * @param tv The translation vector.
+ * @return The count of occurrences in the history.
+ */size_t count(const History& h, const TranslationVector& tv, std::function<bool(const TranslationVector&, const TranslationVector&)> predicate) {
+	size_t cnt = 0;
+	off_t offset = 0;
+	while((offset = find(h, tv, predicate, offset + 1)) != -1)
+		++cnt;
+
+	return cnt;
+}
 
 /**
  * Count the occurences of a translation vector in the history.
@@ -55,13 +68,10 @@ off_t find(const History& h, const TranslationVector& tv, const off_t& offset = 
  * @param tv The translation vector.
  * @return The count of occurrences in the history.
  */size_t count(const History& h, const TranslationVector& tv) {
-	size_t cnt = 0;
-	off_t offset = 0;
-	while((offset = find(h,tv, offset + 1)) != -1)
-		++cnt;
-
-	return cnt;
+	return count(h,tv, [](const TranslationVector& lhs, const TranslationVector& rhs){ return lhs == rhs; });
 }
+
+
 
 
 }
