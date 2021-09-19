@@ -69,10 +69,10 @@ The library has two dependencies: [Boost Geometry](http://www.boost.org/doc/libs
 //uncomment to enable debug mode
 //#define NFP_DEBUG
 
-#include "../src/libnfp.hpp"
+#include "../src/libnfporb.hpp"
 
 int main(int argc, char** argv) {
-  using namespace libnfp;
+  using namespace libnfporb;
   polygon_t pA;
   polygon_t pB;
   //read polygons from wkt files
