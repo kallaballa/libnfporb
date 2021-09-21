@@ -7,21 +7,6 @@
 namespace libnfporb {
 
 /**
- * @brief Checks if a point exists in a NFP
- * @param pt The point to look for
- * @param nfp The NFP to search
- * @return true if the point was found
- */
-bool in_nfp(const point_t& pt, const nfp_t& nfp) {
-	for (const auto& r : nfp) {
-		if (bg::touches(pt, r))
-			return true;
-	}
-
-	return false;
-}
-
-/**
  * @brief Indicating the result of %search_start_translation
  */
 enum SearchStartResult {

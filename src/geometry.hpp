@@ -522,6 +522,15 @@ point_t flip(const point_t& vec) {
 	return flipped;
 }
 
+bool is_parallel(const segment_t& s1, const segment_t& s2) {
+	coord_t dx1 = s1.first.x_ - s2.first.x_;
+	coord_t dy1 = s1.first.y_ - s2.first.y_;
+	coord_t dx2 = s1.second.x_ - s2.second.x_;
+	coord_t dy2 = s1.second.y_ - s2.second.y_;
+
+	return dx1 == dx2 && dy2 == dy1;
+}
+
 enum Alignment {
 	LEFT,
 	RIGHT,
@@ -625,6 +634,20 @@ psize_t find_point(const polygon_t::ring_type& ring, const point_t& pt) {
 	return std::numeric_limits<psize_t>::max();
 }
 
+/**
+ * @brief Checks if a point exists in a NFP
+ * @param pt The point to look for
+ * @param nfp The NFP to search
+ * @return true if the point was found
+ */
+bool in_nfp(const point_t& pt, const nfp_t& nfp) {
+	for (const auto& r : nfp) {
+		if (bg::touches(pt, r))
+			return true;
+	}
+
+	return false;
+}
 }
 
 #endif /* SRC_GEOMETRY_HPP_ */

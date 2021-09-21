@@ -75,7 +75,7 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 			return NO_LOOP;
 		}
 
-		TranslationVector next = select_next_translation_vector(pA, rA, rB, feasibleVectors, history);
+		TranslationVector next = select_next_translation_vector(nfp, pA, rA, rB, feasibleVectors, history);
 
 		if (equals(next.vector_, INVALID_POINT))
 			return NO_TRANSLATION;
