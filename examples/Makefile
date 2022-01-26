@@ -2,15 +2,15 @@ TARGET1 := nfp
 TARGET2 := fuzz
 TARGET3 := isvalid 
 TARGET4 := writeGolden
+TARGET5 := wkt_to_svg
 
 SRCS1 := nfp.cpp
 SRCS2 := fuzz.cpp
 SRCS3 := isvalid.cpp
 SRCS4 := writeGolden.cpp
+SRCS5 := wkt_to_svg.cpp 
 
 #precompiled headers
-HEADERS1 := 
-HEADERS2 :=
 OBJS1    := ${SRCS1:.cpp=.o} 
 DEPS1    := ${SRCS1:.cpp=.dep} 
 OBJS2    := ${SRCS2:.cpp=.o}
@@ -19,21 +19,23 @@ OBJS3    := ${SRCS3:.cpp=.o}
 DEPS3    := ${SRCS3:.cpp=.dep}
 OBJS4    := ${SRCS4:.cpp=.o}
 DEPS4    := ${SRCS4:.cpp=.dep}
+OBJS5    := ${SRCS5:.cpp=.o}
+DEPS5    := ${SRCS5:.cpp=.dep}
 
 
-OBJS	:= ${OBJS1} ${OBJS2} ${OBJS3} ${OBJS4}
+OBJS	:= ${OBJS1} ${OBJS2} ${OBJS3} ${OBJS4} ${OBJS5}
 
 CXXFLAGS += -fpic -I.
 LDFLAGS += 
 .PHONY: all release debug clean distclean 
 
 all: release
-release: ${TARGET1} ${TARGET2} ${TARGET3} ${TARGET4}
-debug: ${TARGET1} ${TARGET2} ${TARGET3} ${TARGET4}
-info: ${TARGET1} ${TARGET2} ${TARGET3} ${TARGET4}
-profile: ${TARGET1} ${TARGET2} ${TARGET3} ${TARGET4}
-hardcore: ${TARGET1} ${TARGET2} ${TARGET3} ${TARGET4}
-asan: ${TARGET1} ${TARGET2} ${TARGET3} ${TARGET4}
+release: ${TARGET1} ${TARGET2} ${TARGET3} ${TARGET4} ${TARGET5}
+debug: ${TARGET1} ${TARGET2} ${TARGET3} ${TARGET4} ${TARGET5}
+info: ${TARGET1} ${TARGET2} ${TARGET3} ${TARGET4} ${TARGET5}
+profile: ${TARGET1} ${TARGET2} ${TARGET3} ${TARGET4} ${TARGET5}
+hardcore: ${TARGET1} ${TARGET2} ${TARGET3} ${TARGET4} ${TARGET5}
+asan: ${TARGET1} ${TARGET2} ${TARGET3} ${TARGET4} ${TARGET5}
 
 ${TARGET1}: ${OBJS1}
 	${CXX} ${LDFLAGS} -o $@ $^ ${LIBS}
@@ -83,6 +85,18 @@ ${DEPS4}: %.dep: %.cpp Makefile
 ${GCH4}: %.gch: ${HEADERS4}
 	${CXX} ${CXXFLAGS} -o $@ -c ${@:.gch=.hpp}
 
+${TARGET5}: ${OBJS5}
+	${CXX} ${LDFLAGS} -o $@ $^ ${LIBS}
+
+${OBJS5}: %.o: %.cpp %.dep ${GCH5}
+	${CXX} ${CXXFLAGS} -o $@ -c $<
+
+${DEPS5}: %.dep: %.cpp Makefile
+	${CXX} ${CXXFLAGS} -MM $< > $@
+
+${GCH5}: %.gch: ${HEADERS5}
+	${CXX} ${CXXFLAGS} -o $@ -c ${@:.gch=.hpp}
+
 install:
 	mkdir -p ${DESTDIR}/${PREFIX}
 	cp ${TARGET} ${DESTDIR}/${PREFIX}
@@ -91,7 +105,6 @@ uninstall:
 	rm ${DESTDIR}/${PREFIX}/${TARGET}
 
 clean:
-	rm -f *~ ${DEPS} ${OBJS} ${CUO} ${GCH} ${TARGET1} ${TARGET2} ${TARGET3}
-
+	rm -f *~ ${DEPS} ${OBJS} ${CUO} ${GCH} ${TARGET1} ${TARGET2} ${TARGET3} ${TARGET4} ${TARGET5}
 distclean: clean
 
