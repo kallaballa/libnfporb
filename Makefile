@@ -1,6 +1,6 @@
 CXX      := g++
 CXXFLAGS :=  -pthread -fno-strict-aliasing -std=c++1y -pedantic -Wall
-LDFLAGS  := -L/opt/local/lib
+LDFLAGS  := -L/opt/local/lib -L/usr/local/lib
 LIBS     := -lm -lgmp
 .PHONY: all release debian-release info debug clean debian-clean distclean asan
 DESTDIR := /
