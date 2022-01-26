@@ -1,3 +1,4 @@
+examples/wkt_to_svg
 examples/writeGolden
 gengolden.log
 *.svg
