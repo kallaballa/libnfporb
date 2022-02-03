@@ -92,9 +92,11 @@ Run the example program:
 
     examples/nfp data/crossing/A.wkt data/crossing/B.wkt
 
-## Reference Implementations
+## References
 * https://dspace.vutbr.cz/xmlui/handle/11012/191851 (Master thesis: Software for efficient use of material in 2D machining)
 * https://dspace.cuni.cz/bitstream/handle/20.500.11956/148383/130316114.pdf?sequence=1 (Master thesis: Reálná aplikace uspořádávání mnohoúhelníků)
 * https://github.com/tamasmeszaros/libnest2d (2D irregular bin packaging and nesting library written in modern C++)
 * https://github.com/Naimad1CZ/Online2DIrregularBPP (2D irregular BPP algorithm)
 * https://github.com/martinhansdk/Flatpack (An addin for Fusion 360 which provides a better way to export DXF files for laser cutting)
+* https://github.com/Papooch/WasteOptimiser
+
