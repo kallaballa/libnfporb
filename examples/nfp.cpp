@@ -2,7 +2,7 @@
 //#define LIBNFP_USE_RATIONAL
 
 //uncomment to enable debug mode
-#define NFP_DEBUG
+//#define NFP_DEBUG
 
 #include "../src/libnfporb.hpp"
 
