@@ -128,6 +128,10 @@ private:
 		return this->val() < other;
 	}
 
+	bool operator<(const double& other) const {
+		return this->val() < other;
+	}
+
 	bool operator>(const int& other) const {
 		return this->operator >(static_cast<long double>(other));
 	}
