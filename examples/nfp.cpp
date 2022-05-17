@@ -7,7 +7,7 @@
 #include "../src/libnfporb.hpp"
 
 int main(int argc, char** argv) {
-  using namespace libnfporb;
+	using namespace libnfporb;
 
 	polygon_t pA;
 	polygon_t pB;
@@ -15,12 +15,12 @@ int main(int argc, char** argv) {
 	read_wkt_polygon(argv[1], pA);
 	read_wkt_polygon(argv[2], pB);
 
-  //generate NFP of polygon A and polygon B and check the polygons for validity.
-  //When the third parameters is false validity check is skipped for a little performance increase
+	//generate NFP of polygon A and polygon B and check the polygons for validity.
+	//When the third parameters is false validity check is skipped for a little performance increase
 	nfp_t nfp = generate_nfp(pA, pB, true);
 
 	//write and svg containing pA, pB and NFP
-	write_svg("nfp.svg",pA,pB,nfp);
+	write_svg("nfp.svg", pA, pB, nfp);
 	return 0;
 }
 

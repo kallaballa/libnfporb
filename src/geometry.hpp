@@ -290,8 +290,8 @@ bool equals(const LongDouble& lhs, const LongDouble& rhs);
 bool equals(const rational_t& lhs, const rational_t& rhs);
 #endif
 
-const coord_t MAX_COORD = 999999999999999999;
-const coord_t MIN_COORD = std::numeric_limits<coord_t>::min();
+const coord_t MAX_COORD = std::numeric_limits<coord_t>::max();
+const coord_t MIN_COORD = std::numeric_limits<coord_t>::max() * -1;
 
 class point_t {
 public:
@@ -567,10 +567,11 @@ long double get_inner_angle(const point_t& joint, const point_t& end1, const poi
 }
 
 std::vector<psize_t> find_minimum_x(const polygon_t& p) {
+	assert(!p.outer().empty());
 	std::vector<psize_t> result;
 	coord_t min = MAX_COORD;
 	auto& po = p.outer();
-	for (psize_t i = 0; i < p.outer().size() - 1; ++i) {
+	for (psize_t i = 0; i < po.size() - 1; ++i) {
 		if (smaller(po[i].x_, min)) {
 			result.clear();
 			min = po[i].x_;
@@ -583,26 +584,32 @@ std::vector<psize_t> find_minimum_x(const polygon_t& p) {
 }
 
 std::vector<psize_t> find_maximum_x(const polygon_t& p) {
+	assert(!p.outer().empty());
 	std::vector<psize_t> result;
 	coord_t max = MIN_COORD;
+	std::cerr << "max1: " << max << std::endl;
 	auto& po = p.outer();
-	for (psize_t i = 0; i < p.outer().size() - 1; ++i) {
+
+	for (psize_t i = 0; i < po.size() - 1; ++i) {
+		std::cerr << "x: " << po[i].x_ << std::endl;
 		if (larger(po[i].x_, max)) {
 			result.clear();
 			max = po[i].x_;
+			std::cerr << "max2: " << max << std::endl;
 			result.push_back(i);
 		} else if (equals(po[i].x_, max)) {
+			std::cerr << "max3: " << max << std::endl;
 			result.push_back(i);
 		}
 	}
 	return result;
 }
-
 std::vector<psize_t> find_minimum_y(const polygon_t& p) {
+	assert(!p.outer().empty());
 	std::vector<psize_t> result;
 	coord_t min = MAX_COORD;
 	auto& po = p.outer();
-	for (psize_t i = 0; i < p.outer().size() - 1; ++i) {
+	for (psize_t i = 0; i < po.size() - 1; ++i) {
 		if (smaller(po[i].y_, min)) {
 			result.clear();
 			min = po[i].y_;
@@ -615,10 +622,11 @@ std::vector<psize_t> find_minimum_y(const polygon_t& p) {
 }
 
 std::vector<psize_t> find_maximum_y(const polygon_t& p) {
+	assert(!p.outer().empty());
 	std::vector<psize_t> result;
 	coord_t max = MIN_COORD;
 	auto& po = p.outer();
-	for (psize_t i = 0; i < p.outer().size() - 1; ++i) {
+	for (psize_t i = 0; i < po.size() - 1; ++i) {
 		if (larger(po[i].y_, max)) {
 			result.clear();
 			max = po[i].y_;
