@@ -587,15 +587,12 @@ std::vector<psize_t> find_maximum_x(const polygon_t& p) {
 	assert(!p.outer().empty());
 	std::vector<psize_t> result;
 	coord_t max = MIN_COORD;
-	std::cerr << "max1: " << max << std::endl;
 	auto& po = p.outer();
 
 	for (psize_t i = 0; i < po.size() - 1; ++i) {
-		std::cerr << "x: " << po[i].x_ << std::endl;
 		if (larger(po[i].x_, max)) {
 			result.clear();
 			max = po[i].x_;
-			std::cerr << "max2: " << max << std::endl;
 			result.push_back(i);
 		} else if (equals(po[i].x_, max)) {
 			std::cerr << "max3: " << max << std::endl;
@@ -647,7 +644,7 @@ psize_t find_point(const polygon_t::ring_type& ring, const point_t& pt) {
 }
 
 /**
- * @brief Checks if a point exists in a NFP
+ * @brief Checks if a point touches a NFP
  * @param pt The point to look for
  * @param nfp The NFP to search
  * @return true if the point was found
