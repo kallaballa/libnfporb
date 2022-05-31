@@ -446,6 +446,10 @@ struct smaller<libnfporb::LongDouble>
 }
 }
 
+namespace boost { namespace qvm {
+    template <> struct is_scalar<libnfporb::LongDouble> { static bool const value = true; };
+}}
+
 namespace libnfporb {
 bool equals(const LongDouble& lhs, const LongDouble& rhs) {
 	if (lhs.val() == rhs.val())
