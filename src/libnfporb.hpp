@@ -296,10 +296,16 @@ nfp_t generate_nfp(polygon_t& pA, polygon_t& pB, const bool checkValidity = true
 	write_svg("nfp.svg", pA,pB, nfp);
 #endif
 
+	trans::translate_transformer<coord_t, 2, 2> transformerBack(-preTrans.x_, -preTrans.y_);
+
+	polygon_t::ring_type translatedBack;
 	for(auto& r : nfp) {
 		while(delete_consecutive_repeating_point_patterns(r));
 		bg::correct(r);
+		boost::geometry::transform(r, translatedBack, transformerBack);
+		r = std::move(translatedBack);
 	}
+
 	return nfp;
 }
 }
