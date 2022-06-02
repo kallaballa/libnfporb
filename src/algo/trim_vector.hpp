@@ -17,18 +17,24 @@ TranslationVector trim_vector(const polygon_t::ring_type& rA, const polygon_t::r
 	coord_t shortest = bg::length(tv.edge_);
 	TranslationVector trimmed = tv;
 	for (const auto& ptA : rA) {
-		point_t translated;
 		//for polygon A we invert the translation
-		trans::translate_transformer<coord_t, 2, 2> translate(-tv.vector_.x_, -tv.vector_.y_);
-		boost::geometry::transform(ptA, translated, translate);
+		point_t translated = { ptA.x_ - tv.vector_.x_, ptA.y_ - tv.vector_.y_};
 		linestring_t projection;
 		segment_t segproj(ptA, translated);
 		projection.push_back(ptA);
 		projection.push_back(translated);
 		std::vector<point_t> intersections;
 		bg::intersection(rB, projection, intersections);
-		if (bg::touches(projection, rB) && intersections.size() < 2) {
-			continue;
+		if (intersections.size() < 2) {
+			bool found = false;
+			for (const auto& ptB : rB) {
+				if(equals(ptA,ptB)) {
+					found = true;
+					break;
+				}
+			}
+			if(found)
+				continue;
 		}
 
 		//find shortest intersection
@@ -46,20 +52,24 @@ TranslationVector trim_vector(const polygon_t::ring_type& rA, const polygon_t::r
 	}
 
 	for (const auto& ptB : rB) {
-		point_t translated;
-
-		trans::translate_transformer<coord_t, 2, 2> translate(tv.vector_.x_, tv.vector_.y_);
-		boost::geometry::transform(ptB, translated, translate);
+		point_t translated = { ptB.x_ + tv.vector_.x_, ptB.y_ + tv.vector_.y_};
 		linestring_t projection;
 		segment_t segproj(ptB, translated);
 		projection.push_back(ptB);
 		projection.push_back(translated);
 		std::vector<point_t> intersections;
 		bg::intersection(rA, projection, intersections);
-		if (bg::touches(projection, rA) && intersections.size() < 2) {
-			continue;
+		if (intersections.size() < 2) {
+			bool found = false;
+			for (const auto& ptA : rA) {
+				if(equals(ptB, ptA)) {
+					found = true;
+					break;
+				}
+			}
+			if(found)
+				continue;
 		}
-
 		//find shortest intersection
 		coord_t len;
 		segment_t segi;
