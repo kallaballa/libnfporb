@@ -137,57 +137,8 @@ nfp_t generate_nfp(polygon_t& pA, polygon_t& pB, const bool checkValidity = true
 	DEBUG_VAL(bg::wkt(pA));
 	DEBUG_VAL(bg::wkt(pB));
 
-
-//	polygon_t pAtrans;
-//	polygon_t pBtrans;
-
-	std::vector<psize_t> yAminI = find_minimum_y(pA);
-	std::vector<psize_t> yBminI = find_minimum_y(pB);
-	std::vector<psize_t> xAminI = find_minimum_x(pA);
-	std::vector<psize_t> xBminI = find_minimum_x(pB);
-	std::vector<psize_t> yAmaxI = find_maximum_y(pA);
 	std::vector<psize_t> yBmaxI = find_maximum_y(pB);
-	std::vector<psize_t> xAmaxI = find_maximum_x(pA);
-	std::vector<psize_t> xBmaxI = find_maximum_x(pB);
-
-//	point_t preTrans;
-//	LongDouble leftA = pA.outer()[xAminI.front()].x_;
-//	LongDouble rightA = pA.outer()[xAmaxI.front()].x_;
-//	if(rightA < 0) {
-//		preTrans.x_ = rightA * -1;
-//	} else if(leftA < 0) {
-//		preTrans.x_ = leftA * -1;
-//	}
-//
-//	LongDouble topA = pA.outer()[yAmaxI.front()].y_;
-//	LongDouble bottomA = pA.outer()[yAminI.front()].y_;
-//	if(topA < 0) {
-//		preTrans.y_ = topA * -1;
-//	} else if(bottomA < 0) {
-//		preTrans.y_ = bottomA * -1;
-//	}
-//
-//	LongDouble leftB = pB.outer()[xBminI.front()].x_;
-//	LongDouble rightB = pB.outer()[xBmaxI.front()].x_;
-//	if(rightB < 0) {
-//		preTrans.x_ += rightB * -1;
-//	} else if(leftB < 0) {
-//		preTrans.x_ += leftB * -1;
-//	}
-//
-//	LongDouble topB = pB.outer()[yBmaxI.front()].y_;
-//	LongDouble bottomB = pB.outer()[yBminI.front()].y_;
-//	if(topB < 0) {
-//		preTrans.y_ += topB * -1;
-//	} else if(bottomB < 0) {
-//		preTrans.y_ += bottomB * -1;
-//	}
-//
-//	trans::translate_transformer<coord_t, 2, 2> transformer(preTrans.x_, preTrans.y_);
-//	boost::geometry::transform(pA, pAtrans, transformer);
-//	boost::geometry::transform(pB, pBtrans, transformer);
-//	pA = std::move(pAtrans);
-//	pB = std::move(pBtrans);
+	std::vector<psize_t> yAminI = find_minimum_y(pA);
 
 	point_t pAstart;
 	point_t pBstart;
@@ -295,14 +246,9 @@ nfp_t generate_nfp(polygon_t& pA, polygon_t& pB, const bool checkValidity = true
 	write_svg("nfp.svg", pA,pB, nfp);
 #endif
 
-//	trans::translate_transformer<coord_t, 2, 2> transformerBack(-preTrans.x_, -preTrans.y_);
-
-//	polygon_t::ring_type translatedBack;
 	for(auto& r : nfp) {
 		while(delete_consecutive_repeating_point_patterns(r));
 		bg::correct(r);
-//		boost::geometry::transform(r, translatedBack, transformerBack);
-//		r = std::move(translatedBack);
 	}
 
 	return nfp;
