@@ -87,7 +87,7 @@ SearchStartResult search_start_translation(polygon_t::ring_type& rA, const polyg
 			slideVector.vector_ = nextPtA - ptA;
 			slideVector.edge_ = {ptA, nextPtA};
 			slideVector.fromA_ = true;
-			TranslationVector trimmed = trim_vector(rA, translated, slideVector);
+			TranslationVector trimmed = slideVector; //trim_vector(rA, translated, slideVector);
 			polygon_t::ring_type translated2;
 			trans::translate_transformer<coord_t, 2, 2> trans(trimmed.vector_.x_, trimmed.vector_.y_);
 			boost::geometry::transform(translated, translated2, trans);
