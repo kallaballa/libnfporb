@@ -4,7 +4,7 @@
 # libnfporb
 Implementation of a robust no-fit polygon generation in a C++ library using an orbiting approach.
 
-__Please note:__ The paper this implementation is based it on has several bad assumptions that required me to "improvise". That means the code doesn't reflect the paper anymore and is running way slower than expected.
+__Please note:__ The paper this implementation is based on has several bad assumptions that required me to "improvise". That means the code doesn't reflect the paper anymore and is running way slower than expected.
 
 ## Description
 
