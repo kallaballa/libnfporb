@@ -1,3 +1,5 @@
+# There are way better alternatives to libnfporb out by now that is why I'm going to archive this repository
+
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.en.html)
 ##### If you give me a real good reason i might be willing to give you permission to use it under a different license for a specific application. Real good reasons include the following (non-exhausive): the greater good, educational purpose and money :)
 
